@@ -37,18 +37,24 @@ CONTACT_TYPE = (
     (1, 'Clue'),
 )
 BOOST_KPI_TYPE = (
-    (1, 'NoKpi'),
+    (0, 'NoKpi'),
     (1, 'ViewAmount'),
 )
 MEDICAL_STATUS = (
+	(0, 'None'),
 	(1, 'Sterilized'),
 	(2, 'Vaccinated'),
 	(3, 'Desinsect'),
 )
 PET_TYPE = (
+    (0, 'Other'),
     (1, 'Cat'),
     (2, 'Dog'),
-    (3, 'Other'),
+)
+FOUND_STATUS = (
+    (0, 'NotAtHand'),
+    (1, 'AtHand'),
+    (2, 'InHospital'),
 )
 
 class UserAuth(models.Model):
@@ -60,7 +66,7 @@ class User(models.Model):
 
 class PetLost(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    publiser = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_pet_losts')
+    publiser = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost')
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
     gender = models.IntegerField(choices=GENDER_CHOICE, default=1)
@@ -68,8 +74,8 @@ class PetLost(models.Model):
     descrption = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=10, decimal_places=4)
-    latitude = models.DecimalField(max_digits=10, decimal_places=4)
+    longitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    latitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
     is_in_boost = models.BooleanField(default=False)
@@ -82,41 +88,122 @@ class PetLost(models.Model):
     view_count = models.IntegerField(default=0)
     repost_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
+
     medical_status = SeparatedValuesField(max_length=MID_CHAR,choices=MEDICAL_STATUS,\
                                           blank=True, null=True)
     create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_pet_losts')
+                                  related_name='created_pet_lost')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_pet_lost')
+    last_update_time = models.DateTimeField(default=now)
+
+class PetFound(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    publiser = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
+    species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
+    type = models.IntegerField(choices=PET_TYPE, default=1)
+    color = models.CharField(max_length=SHORT_CHAR, blank=True, null=True)
+    descroption = models.TextField(blank=True, null=True)
+    region_id = models.IntegerField(blank=True, null=True)
+    place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
+    found_status = models.IntegerField(choices=FOUND_STATUS, default=0)
+    status = models.IntegerField(choices=CASE_STATUS, default=0)
+    audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
+    view_count = models.IntegerField(default=0)
+    repost_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_pet_found')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_pet_found')
+    last_update_time = models.DateTimeField(default=now)
+
+class ContactRelation(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    user_a = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='contact_a')
+    user_b = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='contact_b')
+    first_found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True,null=True)
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_contact_relaion')
     create_time = models.DateTimeField(default=now)
     last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_pet_losts')
     last_update_time = models.DateTimeField(default=now)
 
-class PetFound(models.Model):
-    pass
-
-class ContactRelation(models.Model):
     pass
 
 class PrivateContact(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    user_a = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='private_contact_a')
+    user_b = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='private_contact_b')
+    first_found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True,null=True)
+    message = models.TextField()
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_private_contact')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_private_contact')
+    last_update_time = models.DateTimeField(default=now)
 
-class PetLostFoundTag(models.Model):
-    pass
+class LostFoundTag(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    # FIXME(zhujun):
 
-class PetListFoundComment(models.Model):
-    pass
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_lost_found_tag')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_lost_found_tag')
+    last_update_time = models.DateTimeField(default=now)
+
+class Comment(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    publisher = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='published_comment')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, related_name='comment')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, related_name='comment')
+    audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
+
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_comment')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_comment')
+    last_update_time = models.DateTimeField(default=now)
 
 class PetLostBoost(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    publisher = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_boost')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
+    booster = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
+    booster_nickname = models.CharField(max_length=MID_CHAR, blank=True, null=True)
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_boost')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_boost')
+    last_update_time = models.DateTimeField(default=now)
 
 class PetTag(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    publisher = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_tag')
+    name = models.CharField(max_length=MID_CHAR)
+    frequency = models.IntegerField(default=0)
+    score = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_tag')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_tag')
+    last_update_time = models.DateTimeField(default=now)
 
 class PetSpecies(models.Model):
-    pass
-
-class PetClass(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    type = models.IntegerField(choices=PET_TYPE, default=0)
+    name = models.CharField(max_length=MID_CHAR)
 
 class PetCase(models.Model):
     pass
