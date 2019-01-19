@@ -36,8 +36,12 @@ CONTACT_TYPE = (
     (0, 'LostFound'),
     (1, 'Clue'),
 )
+CONTACT_STATUS = (
+    (0, 'NotContact'),
+    (1, 'Contacted'),
+)
 BOOST_KPI_TYPE = (
-    (1, 'NoKpi'),
+    (0, 'NoKpi'),
     (1, 'ViewAmount'),
 )
 MEDICAL_STATUS = (
@@ -49,6 +53,10 @@ PET_TYPE = (
     (1, 'Cat'),
     (2, 'Dog'),
     (3, 'Other'),
+)
+MATERIAL_TYPE = (
+    (0, 'Video'),
+    (1, 'Image'),
 )
 
 class UserAuth(models.Model):
@@ -113,22 +121,80 @@ class PetTag(models.Model):
     pass
 
 class PetSpecies(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    name = models.CharField(max_length=20, blank=False, null=False)
 
 class PetClass(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True, related_name='class_species')
+    name = models.CharField(max_length=20, blank=False, null=False)
 
-class PetCase(models.Model):
-    pass
+class PetLostFoundMatch(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_found_match')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_found_match')
+    contact_status = models.IntegerField(choices=CONTACT_TYPE, blank=False, null=False)
+    static_score = models.IntegerField(default=None)
+    feedback_score = models.IntegerField(default=None)
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='lost_found_match_create')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='lost_found_match_update')
+    last_update_time = models.DateTimeField(default=now)
 
 class PetCaseClose(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_case_close')
+    best_found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_case_close')
+    descrption = models.TextField(blank=True, null=True)
+    view_count = models.IntegerField(default=0)
+    repost_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    reward_charge_status = models.IntegerField(choices=CHARGE_STATUS, default=0)
+    reward_charge_amount = models.IntegerField(default=0, help_text='单位分')
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='case_close_create')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='case_close_update')
+    last_update_time = models.DateTimeField(default=now)
 
 class PetMaterial(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    type = models.IntegerField(choices=MATERIAL_TYPE, blank=True, null=True)
+    mime_type = models.CharField(max_length=20, blank=True, null=True)
+    size = models.IntegerField(default=0)
+    mime_type = models.CharField(max_length=100, blank=True, null=True)
+    url = models.CharField(max_length=1000, blank=True, null=True)
+    create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='material_create')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='material_update')
+    last_update_time = models.DateTimeField(default=now)
 
 class PetLostInteractHourly(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    date_id = models.IntegerField(default=None)
+    hour_id = models.IntegerField(default=None)
+    repost_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    pv = models.IntegerField(default=0)
+    uv = models.IntegerField(default=0)
+    valid_uv = models.IntegerField(default=0)
+    boost_uv = models.IntegerField(default=0)
+    boost_amount = models.IntegerField(default=0, help_text='单位分')
+    create_time = models.DateTimeField(default=now)
+    last_update_time = models.DateTimeField(default=now)
 
 class PetFoundInteractHourly(models.Model):
-    pass
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    date_id = models.IntegerField(default=None)
+    hour_id = models.IntegerField(default=None)
+    repost_count = models.IntegerField(default=0)
+    like_count = models.IntegerField(default=0)
+    pv = models.IntegerField(default=0)
+    uv = models.IntegerField(default=0)
+    create_time = models.DateTimeField(default=now)
+    last_update_time = models.DateTimeField(default=now)
