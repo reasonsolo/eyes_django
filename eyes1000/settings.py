@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'pet',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -75,14 +76,21 @@ WSGI_APPLICATION = 'eyes1000.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'naiba_eyes',
-        'HOST': '127.0.0.1',
-        'USER': 'dbuser',
-        'PASSWORD': 'Naibadbuser_060',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'naiba_eyes',
+#         'HOST': '127.0.0.1',
+#         'USER': 'dbuser',
+#         'PASSWORD': 'Naibadbuser_060',
+#         'PORT': '3306',
+#     }
+# }
 
 
 # Password validation
