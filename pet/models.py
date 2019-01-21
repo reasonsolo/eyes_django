@@ -150,7 +150,7 @@ class PrivateContact(models.Model):
     user_a = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='private_contact_a')
     user_b = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, related_name='private_contact_b')
     first_found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True,null=True)
-    message = models.TextField()
+    message = models.TextField(null=True)
     create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_private_contact')
     create_time = models.DateTimeField(default=now)
@@ -201,8 +201,10 @@ class PetLostBoost(models.Model):
 class PetTag(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     publisher = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_tag')
+
     lost = models.ForeignKey('PetLost')
-    name = models.CharField(max_length=MID_CHAR)
+    name = models.CharField(max_length=MID_CHAR, blank=True, null=True)
+
     frequency = models.IntegerField(default=0)
     score = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
@@ -215,7 +217,7 @@ class PetTag(models.Model):
 class PetSpecies(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     type = models.IntegerField(choices=PET_TYPE, default=0)
-    name = models.CharField(max_length=MID_CHAR)
+    name = models.CharField(max_length=MID_CHAR, blank=True, null=True)
 
 class PetLostFoundMatch(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
