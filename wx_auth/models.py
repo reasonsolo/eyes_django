@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth import models as auth_models
 
 # Create your models here.
 
@@ -11,9 +12,9 @@ FLAG_CHOICE = (
     (1, 'Yes'),
 )
 
-class User(models.Model):
+class UserProfile(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    account = models.ForeignKey('UserAccount', on_delete=models.SET_NULL, blank=True, null=True)
+    account = models.ForeignKey(auth_models.User, on_delete=models.SET_NULL, blank=True, null=True)
 
     nickname = models.CharField(max_length=MID_CHAR)
     avatar = models.URLField(max_length=LONG_CHAR)
@@ -27,10 +28,5 @@ class User(models.Model):
     last_ip = models.GenericIPAddressField(unpack_ipv4=True, blank=True, null=True)
     join_ip = models.GenericIPAddressField(unpack_ipv4=True, blank=True, null=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%d:%s' % (self.id, self.nickname)
-
-
-class UserAccount(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    pass
