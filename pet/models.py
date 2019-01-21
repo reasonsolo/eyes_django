@@ -70,13 +70,14 @@ class UserAuth(models.Model):
     pass
 
 class User(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     pass
 
 class PetLost(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     publiser = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost')
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
-    type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
+    pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
     gender = models.IntegerField(choices=GENDER_CHOICE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     descrption = models.TextField(blank=True, null=True)
@@ -159,14 +160,16 @@ class PrivateContact(models.Model):
 
 class LostFoundTag(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    # FIXME(zhujun):
-
+    name = models.CharField(max_length=MID_CHAR)
     create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_lost_found_tag')
     create_time = models.DateTimeField(default=now)
     last_update_by = models.ForeignKey('User',on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_lost_found_tag')
     last_update_time = models.DateTimeField(default=now)
+
+    def __unicode__(self):
+        return name
 
 class Comment(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
@@ -198,6 +201,7 @@ class PetLostBoost(models.Model):
 class PetTag(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     publisher = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True, related_name='published_tag')
+    lost = models.ForeignKey('PetLost')
     name = models.CharField(max_length=MID_CHAR)
     frequency = models.IntegerField(default=0)
     score = models.DecimalField(max_digits=10, decimal_places=4, default=0)
@@ -246,11 +250,13 @@ class PetCaseClose(models.Model):
 
 class PetMaterial(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    type = models.IntegerField(choices=MATERIAL_TYPE, blank=True, null=True)
+    lost = models.ForeignKey('PetLost', blank=True, null=True, related_name='materials')
+    found = models.ForeignKey('PetFound', blank=True, null=True, related_name='materials')
+    mat_type = models.IntegerField(choices=MATERIAL_TYPE, blank=True, null=True)
     mime_type = models.CharField(max_length=20, blank=True, null=True)
     size = models.IntegerField(default=0)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
-    url = models.CharField(max_length=1000, blank=True, null=True)
+    url = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
     create_by = models.ForeignKey('User', on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='material_create')
     create_time = models.DateTimeField(default=now)
