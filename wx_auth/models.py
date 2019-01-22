@@ -14,7 +14,7 @@ FLAG_CHOICE = (
 
 class UserProfile(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    account = models.ForeignKey(auth_models.User, on_delete=models.SET_NULL, blank=True, null=True)
+    account = models.ForeignKey(auth_models.User, on_delete=models.SET_NULL, blank=True, null=True, related_name='profile')
 
     nickname = models.CharField(max_length=MID_CHAR)
     avatar = models.URLField(max_length=LONG_CHAR)

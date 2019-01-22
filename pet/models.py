@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from separatedvaluesfield.models import SeparatedValuesField
 from datetime import datetime
-from wx_auth.models import UserProfile 
+from wx_auth.models import UserProfile
 
 SHORT_CHAR=5
 MID_CHAR=20
@@ -68,12 +68,12 @@ MATERIAL_TYPE = (
 
 class PetLost(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    publiser = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_losts')
+    publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_losts')
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
     gender = models.IntegerField(choices=GENDER_CHOICE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
-    descrption = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
@@ -90,7 +90,7 @@ class PetLost(models.Model):
     view_count = models.IntegerField(default=0)
     repost_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
-
+    tags = models.ManyToManyField('LostFoundTag', blank=True)
     medical_status = SeparatedValuesField(max_length=MID_CHAR,choices=MEDICAL_STATUS,\
                                           blank=True, null=True)
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
@@ -100,17 +100,20 @@ class PetLost(models.Model):
                                        related_name='updated_pet_losts')
     last_update_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['create_time']
+
     def __str__(self):
-        return '%d:%s@%s-%s' % (self.id, self.publiser.nickname, self.place, self.get_case_status_display())
+        return '%d:%s@%s-%s' % (self.id, self.publisher.nickname, self.place, self.get_case_status_display())
 
 class PetFound(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     publiser = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_founds')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
-    type = models.IntegerField(choices=PET_TYPE, default=1)
+    pet_type = models.IntegerField(choices=PET_TYPE, default=1)
     color = models.CharField(max_length=SHORT_CHAR, blank=True, null=True)
-    descroption = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
     found_status = models.IntegerField(choices=FOUND_STATUS, default=0)
@@ -126,6 +129,9 @@ class PetFound(models.Model):
     last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_pet_found')
     last_update_time = models.DateTimeField(default=now)
+
+    class Meta:
+        ordering = ['create_time']
 
     def __str__(self):
         return '%d:%s@%s-%s' % (self.id, self.publiser.nickname, self.place, self.get_case_status_display())
@@ -143,9 +149,12 @@ class ContactRelation(models.Model):
                                        related_name='updated_contact_relation')
     last_update_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['create_time']
+
     def __str__(self):
         return '%d:%s-%s' % (self.id, self.user_a, self.user_b)
-    
+
 
 class PrivateContact(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
@@ -160,13 +169,15 @@ class PrivateContact(models.Model):
                                        related_name='updated_private_contact')
     last_update_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['create_time']
     def __str__(self):
         return '%d:%s-%s' % (self.id, self.user_a, self.user_b)
 
 
 class LostFoundTag(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    name = models.CharField(max_length=MID_CHAR)
+    name = models.CharField(max_length=MID_CHAR, primary_key=True)
     count = models.IntegerField(default=0)
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_lost_found_tag')
@@ -174,6 +185,17 @@ class LostFoundTag(models.Model):
     last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_lost_found_tag')
     last_update_time = models.DateTimeField(default=now)
+
+    class Meta:
+        ordering = ['count']
+
+    def save(self, *args, **kwargs):
+        tag = LostFoundTag.objects.filter(name=self.name).first()
+        if tag != None:
+            tag.count += 1
+            tag.save()
+        else:
+            super(LostFoundTag, self).save(*args, **kwargs)
 
     def __str__(self):
         return '%d:%s' % (self.id, self.name)
@@ -192,6 +214,8 @@ class Comment(models.Model):
                                        related_name='updated_comment')
     last_update_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['create_time']
     def __str__(self):
         return '%d:%s@%s' % (self.id, self.publisher.nickname, str(self.create_time))
 
@@ -210,6 +234,8 @@ class Message(models.Model):
                                        related_name='updated_message')
     last_update_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['create_time']
     def __str__(self):
         return '%d:%s->%s@%s' (self.id, self.sender.nickname, self.receiver.nickname, str(self.create_time))
 
@@ -279,6 +305,7 @@ class PetMaterial(models.Model):
     size = models.IntegerField(default=0)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     url = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
+    full_path = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='material_create')
     create_time = models.DateTimeField(default=now)
