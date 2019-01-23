@@ -104,7 +104,8 @@ class PetLost(models.Model):
         ordering = ['create_time']
 
     def __str__(self):
-        return '%d:%s@%s-%s' % (self.id, self.publisher.nickname, self.place, self.get_case_status_display())
+        return '%d:%s@%s-%s' % (self.id, self.publisher.nickname if self.publisher is not None else 'None',
+                                self.place, self.get_case_status_display())
 
 class PetFound(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
@@ -304,7 +305,8 @@ class PetMaterial(models.Model):
     mime_type = models.CharField(max_length=20, blank=True, null=True)
     size = models.IntegerField(default=0)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
-    url = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
+    url = models.URLField(max_length=LONG_CHAR, blank=True, null=True)
+    thumb_url = models.URLField(max_length=LONG_CHAR, blank=True, null=True)
     full_path = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='material_create')

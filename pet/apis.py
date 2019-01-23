@@ -1,13 +1,18 @@
 from django.shortcuts import render
-from rest_framework import viewsets
+from django.conf import settings
+from rest_framework import viewsets, views
 from rest_framework.response import Response
-from rest_framework.parsers import FileUploadParser
+from rest_framework.parsers import FileUploadParser, MultiPartParser
 from django.core.files.storage import FileSystemStorage
 
 from pet.models import *
 from pet.serializers import *
 
+from PIL import Image, ImageOps
+import mimetypes
+import io
 import uuid
+mimetypes.init()
 
 # Create your views here.
 
@@ -47,24 +52,46 @@ class PetLostViewSet(viewsets.ModelViewSet):
         pet_lost = get_object_or_404(queryset, pk=pk)
         pass
 
+class ImageUploadParser(FileUploadParser):
+    media_type = 'Image/*'
 
 class MaterialUploadView(views.APIView):
-    parser_classes = (FileUploadParser,)
+    parser_classes = (ImageUploadParser,)
 
     def gen_filename(self, mime):
-        return uuid.uuid1()
+        ext = mimetypes.guess_extension(mime)
+        if ext == '.jpe':
+            ext = '.jpg'
+        return str(uuid.uuid1()) + ext, ext
 
-    def put(self, request, filename, format=None):
+    def put(self, request, format=None):
         file_obj = request.FILES['file']
-        mime = requests.META.get('Content-Type', 'image/jpeg')
-        user = request.user.profile
+        mime = request.META.get('Content-Type', 'image/jpeg')
+
+        user_profile = None
+        if request.user is not None and not request.user.is_anonymous:
+            user_profile = request.user.profile
+
         fs = FileSystemStorage()
+        filename, ext = self.gen_filename(mime)
         filepath = fs.save(filename, file_obj)
-        uploaded_file_url = fs.url(path)
-        material = Material(mime_type=mime, size=file_obj._size, url=uploaded_file_url,
-                            full_path=filepath, created_by=user, last_updated_by=user)
+        uploaded_url = fs.url(filepath)
+
+        image = Image.open(file_obj)
+        thumb = ImageOps.fit(image, settings.THUMB_SIZE, Image.ANTIALIAS)
+
+        thumb_io = io.BytesIO()
+        thumb.save(thumb_io, 'JPEG')
+        thumb_io.seek(0)
+        thumb_filename = 'thumb_' + filename
+        thumb_filepath = fs.save(thumb_filename, thumb_io)
+        thumb_url = fs.url(thumb_filepath)
+
+        material = PetMaterial(mime_type=mime, size=file_obj.size,
+                            url=uploaded_url, thumb_url=thumb_url,
+                            create_by=user_profile, last_update_by=user_profile)
         material.save()
-        ret = {'id': material.id, 'url': material.url}
+        ret = {'id': material.id, 'url': material.url, 'thumbnail_url': material.thumb_url}
         return Response(ret)
 
 

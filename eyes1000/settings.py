@@ -138,10 +138,7 @@ STATIC_URL = '/static/'
 # handle file uploads
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-if DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
+THUMB_SIZE = (100, 100)
 
 
 #AUTH_USER_MODEL = 'wx_auth.UserAccount'
