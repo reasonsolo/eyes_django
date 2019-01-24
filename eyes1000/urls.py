@@ -21,6 +21,7 @@ from django.urls import path,include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('pet/', include('pet.urls')),
+    path('wx_auth/', include('wx_auth.urls')),
 ]
 
 if settings.DEBUG:
