@@ -229,7 +229,7 @@ SPECIES_LIST = (
 )
 def init_species():
     for species in SPECIES_LIST:
-        pet_species = PetSpecies(id=species[0], type=species[1], name=species[3])
+        pet_species = PetSpecies(id=species[0], pet_type=species[1], name=species[3])
         pet_species.save()
 
 if __name__ == '__main__':
