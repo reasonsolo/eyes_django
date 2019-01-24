@@ -241,8 +241,8 @@ class Message(models.Model):
     sender = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='sent_messages')
     reply_to = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
     content = models.TextField(default='')
-    message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE)
-    read_status = models.CharField(max_length=SHORT_CHAR, choices=READ_STATUS)
+    message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
+    read_status = models.CharField(max_length=SHORT_CHAR, choices=READ_STATUS, default=0)
 
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_message')

@@ -54,7 +54,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^found/(?P<pk>[0-9]+)/$', found_detail, name='found-detail'),
     url(r'^found/match/(?P<pk>[0-9]+)/$', found_match, name='found-match'),
 
-    url(r'^like/(?P<obj>[lost|found])/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view({'get': 'like'})),
-    url(r'^follow/(?P<obj>[lost|found])/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view({'get': 'follow'})),
-    url(r'^repost/(?P<obj>[lost|found])/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view({'get': 'repost'})),
+    # url(r'^like/(?P<obj>[lost|found])/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view({'get': 'like'})),
+    # url(r'^follow/(?P<obj>[lost|found])/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view({'get': 'follow'})),
+    # url(r'^repost/(?P<obj>[lost|found])/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view({'get': 'repost'})),
 ])
