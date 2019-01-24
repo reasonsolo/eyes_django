@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils.timezone import now
 from separatedvaluesfield.models import SeparatedValuesField
 from datetime import datetime
@@ -206,9 +207,9 @@ class Tag(models.Model):
         tag = Tag.objects.filter(name=self.name).first()
         if tag != None:
             tag.count += 1
-            tag.save()
+            return tag.save()
         else:
-            super(Tag, self).save(*args, **kwargs)
+            return super(Tag, self).save(*args, **kwargs)
 
     def __str__(self):
         return '%d:%s' % (self.id, self.name)
@@ -236,16 +237,15 @@ class Comment(models.Model):
 
 class Message(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    read = models.BooleanField(default=False)
     receiver = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='received_messages')
     sender = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='sent_messages')
-    reply_to = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
     content = models.TextField(default='')
     message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
     read_status = models.CharField(max_length=SHORT_CHAR, choices=READ_STATUS, default=0)
+    msg_thread = models.ForeignKey('MessageThread', on_delete=models.SET_NULL, null=True, blank=True, related_name='messages')
 
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_message')
+                                  related_name='created_messages')
     create_time = models.DateTimeField(default=now)
 
     class Meta:
@@ -253,6 +253,29 @@ class Message(models.Model):
 
     def __str__(self):
         return '%d:%s->%s@%s' (self.id, self.sender.nickname, self.receiver.nickname, str(self.create_time))
+
+
+class MessageThread(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
+    user_a = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='message_as_a')
+    user_b = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='message_as_b')
+    last_msg = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True)
+
+    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_threads')
+    create_time = models.DateTimeField(default=now)
+
+    def save(self, *args, **kwargs):
+        thread = MessageThread.objects.filter((Q(user_a=self.user_a)&Q(user_b=self.user_b))\
+                                              |(Q(user_a=self.user_b)&Q(user_b=self.user_a))).first()
+        if thread is None:
+            return super(MessageThread, self).save(*args, **kwargs)
+        else:
+            return thread
+
+    def __str__(self):
+        return '%d:%s-%s@%s' % (self.id, self.user_a.nickname, self.user_b.nickname, self.create_time)
 
 
 class PetLostBoost(models.Model):
@@ -371,7 +394,7 @@ class TagUsage(models.Model):
 
     def save(self, *args, **kwargs):
         last_usage = datetime.now()
-        super(TagUsage, self).save()
+        return super(TagUsage, self).save()
 
 
 class FollowLog(models.Model):
@@ -382,6 +405,9 @@ class FollowLog(models.Model):
     updated = models.CharField(max_length=SHORT_CHAR, choices=FLAG_CHOICE)
     create_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['-create_time']
+
 
 class LikeLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
@@ -390,6 +416,8 @@ class LikeLog(models.Model):
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='likes')
     create_time = models.DateTimeField(default=now)
 
+    class Meta:
+        ordering = ['-create_time']
 
 class RepostLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
@@ -397,3 +425,6 @@ class RepostLog(models.Model):
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='reposts')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='reposts')
     create_time = models.DateTimeField(default=now)
+
+    class Meta:
+        ordering = ['-create_time']

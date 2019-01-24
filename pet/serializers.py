@@ -1,3 +1,4 @@
+# encoding: utf-8
 from rest_framework import serializers
 from pet.models import *
 #from wx_auth.serializer import UserBriefSerializer
@@ -158,5 +159,55 @@ class PetFoundSerializer(serializers.ModelSerializer):
                             'found_status', 'case_status', 'audit_status',)
         depth = 1
 
+
+class TimelineSerializer(serializers.Serializer):
+    found = PetFoundSerializer(many=True)
+    lost = PetLostSerializer(many=True)
+
+
+class FollowFeedsSerializer(serializers.ModelSerializer):
+    found = PetFoundSerializer()
+    lost = PetLostSerializer()
+
+    class Meta:
+        model = FollowLog
+        fields = ('id', 'lost', 'found')
+        depth = 1
+
+
+class MessageSerializer(serializers.ModelSerializer):
+
+    def validate(self, data):
+        user_profile = self.context['sender']
+        if user_profile is None or user_profile == data['receiver']:
+            raise serializers.ValidationError(u'用户未登录/不匹配')
+        return data
+
+    def save(self, data):
+        user_profile = self.context['request'].user.profile
+        data['sender'] = user_profile
+        return Message(**data)
+
+    class Meta:
+        model = Message
+        fields = ('id', 'content', 'read_status', 'create_time', 'msg_thread', 'receiver', 'sender')
+        read_only_fields = ('create_time', 'read_status', 'sender')
+
+
+class MessageThreadSerializer(serializers.ModelSerializer):
+    last_msg = MessageSerializer(read_only=True)
+
+    def validate(self, data):
+        user_profile = self.context['request'].user.profile
+        if data['user_a'] == data['user_b'] or\
+            (data['user_a'] != user_profile and data['user_b'] != user_profile):
+            raise serializers.ValidationError(u'发信用户错误')
+        return data
+
+
+    class Meta:
+        model = MessageThread
+        fields = ('id', 'user_a', 'user_b', 'message_type', 'last_msg')
+        read_only_fields = ('message_type',)
 
 

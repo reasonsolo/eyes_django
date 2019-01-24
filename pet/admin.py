@@ -8,6 +8,6 @@ class EyesAdminSite(admin.AdminSite):
 
 @admin.register(PetLost, PetFound, ContactRelation, PrivateContact,
  Comment, Message, Tag, PetLostBoost, PetSpecies,
- PetCaseClose, PetMaterial)
+ PetCaseClose, PetMaterial, LikeLog, RepostLog, FollowLog)
 class PetAdmin(admin.ModelAdmin):
     pass
