@@ -7,7 +7,7 @@ class EyesAdminSite(admin.AdminSite):
     site_header = 'EyesAdministration'
 
 @admin.register(PetLost, PetFound, ContactRelation, PrivateContact,
- Comment, Message, LostFoundTag, PetLostBoost, PetSpecies,
+ Comment, Message, Tag, PetLostBoost, PetSpecies,
  PetCaseClose, PetMaterial)
 class PetAdmin(admin.ModelAdmin):
     pass
