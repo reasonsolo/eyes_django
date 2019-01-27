@@ -204,10 +204,17 @@ class MessageThreadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(u'发信用户错误')
         return data
 
-
     class Meta:
         model = MessageThread
         fields = ('id', 'user_a', 'user_b', 'message_type', 'last_msg')
         read_only_fields = ('message_type',)
 
 
+class CommentSerializer(serializers.ModelSerializer):
+    reply_to = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.filter(flag=1), required=False)
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'publisher', 'reply_to', 'create_time',  'content',
+                  'last_update_time')
+        depth = 1

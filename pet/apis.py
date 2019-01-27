@@ -468,6 +468,36 @@ class MessageViewSet(viewsets.ModelViewSet):
         instance.save()
 
 
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    queryset = Message.objects.filter(flag=1)
 
+    def get_obj(self, obj, obj_pk):
+        if obj == 'lost':
+            return PetLost.objects.filter(flag=1, pk=obj_pk).get()
+        elif obj == 'found':
+            return PetFound.objects.filter(flag=1, pk=obj_pk).get()
+        else:
+            raise Http404
 
+    def list(self, request, obj=None, obj_pk=None):
+        if obj == 'lost':
+            queryset = Comment.objects.filter(flag=1, lost=obj_pk)
+        elif obj == 'found':
+            queryset = Comment.objects.filter(flag=1, found=obj_pk)
+        else:
+            raise Http404
+
+        page = self.paginate_queryset(queryset.all())
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+    def create(self, request, obj, obj_pk):
+        user_profile = get_user_profile(request)
+        ext_arg = {'publisher': user_profile, obj: self.get_obj(obj, obj_pk)}
+        comment = CommentSerializer(data=request.data)
+        if comment.is_valid(raise_exception=True):
+            comment = comment.save(**ext_arg)
+            return Response(self.get_serializer(comment).data)
 

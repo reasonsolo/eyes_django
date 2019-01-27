@@ -55,6 +55,11 @@ message_list = MessageViewSet.as_view({
 	'destroy': 'destroy',
 })
 
+comment_list = CommentViewSet.as_view({
+	'get': 'list',
+	'post': 'create',
+})
+
 #router = DefaultRouter()
 #router.register(r'lost', PetLostViewSet)
 #router.register(r'species', SpeciesListView)
@@ -78,5 +83,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^user/follows/$', follow_feeds, name='follow-feeds'),
 
 	url(r'^msg/threads/$', msg_thread_list, name='msg-thread-list'),
-	url(r'^msg/thread/(?P<thread_pk>[0-9]+)$', message_list, name='msg-view'),
+	url(r'^msg/thread/(?P<thread_pk>[0-9]+)$', message_list, name='msg-list'),
+
+	url(r'^comment/(?P<obj>lost|found)/(?P<obj_pk>[0-9]+)/$', comment_list, name='comment-list'),
 ])

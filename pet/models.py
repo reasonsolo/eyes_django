@@ -118,6 +118,7 @@ class PetLost(models.Model):
         return '%d:%s@%s-%s' % (self.id, self.publisher.nickname if self.publisher is not None else 'None',
                                 self.place, self.get_case_status_display())
 
+
 class PetFound(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_founds')
@@ -148,7 +149,7 @@ class PetFound(models.Model):
         ordering = ['-create_time']
 
     def __str__(self):
-        return '%d:%s@%s-%s' % (self.id, self.publiser.nickname, self.place, self.get_case_status_display())
+        return '%d:%s@%s-%s' % (self.id, self.publisher.nickname, self.place, self.get_case_status_display())
 
 
 class ContactRelation(models.Model):
@@ -220,6 +221,7 @@ class Comment(models.Model):
     publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='published_comment')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, blank=True, related_name='comment')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, blank=True, related_name='comment')
+    content = models.TextField()
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
     reply_to = models.ForeignKey('Comment', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
     create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
@@ -231,8 +233,11 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ['create_time']
+
     def __str__(self):
-        return '%d:%s@%s' % (self.id, self.publisher.nickname, str(self.create_time))
+        return '%d:%s@%s' % (self.id,
+                             self.publisher.nickname if self.publisher is not None else 'anonymous',
+                             str(self.create_time))
 
 
 class Message(models.Model):
@@ -419,6 +424,7 @@ class LikeLog(models.Model):
     class Meta:
         ordering = ['-create_time']
 
+
 class RepostLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='reposts')
@@ -428,3 +434,5 @@ class RepostLog(models.Model):
 
     class Meta:
         ordering = ['-create_time']
+
+
