@@ -10,6 +10,7 @@ from rest_framework import viewsets, views, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser
+from rest_framework.pagination import LimitOffsetPagination
 
 from pet.models import *
 from pet.serializers import *
@@ -107,6 +108,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         queryset = PetFound.objects.filter(flag=1, audit_status=1, case_status=0, pet_type=pet_type)\
                                    .filter(create_time__gte=start_time)\
                                    .filter(create_time__lte=end_time)
+        queryset = queryset | PetFound.objects.filter(flag=1, lost=instance)
         place_queryset = PetFound.objects.none()
         if place is not None:
             place_queryset = queryset.filter(place=place)
@@ -128,6 +130,27 @@ class PetLostViewSet(viewsets.ModelViewSet):
         else:
             return Response([])
 
+    @action(detail=True)
+    def create_found(self, request, pk):
+        user_profile = get_user_profile(self.request)
+        lost = self.get_object(pk)
+        found = PetFoundSerializer(request.data)
+        if found.is_valid(raise_exception=True):
+            found = found.save(publisher=user_profile, lost=lost)
+            return Response(PetFoundSerializer(found).data)
+
+
+class MaterialViewSet(viewsets.ModelViewSet):
+    queryset = PetMaterial.objects.filter(flag=1)
+    serializer_class = PetMaterialSerializer
+
+    def perform_destroy(self, instance):
+        instance.flag = 0
+        instance.save()
+
+    def perform_retrieve(self, instance):
+        if instance.flag == 0:
+            raise Http404
 
 
 class ImageUploadParser(FileUploadParser):
@@ -173,13 +196,6 @@ class MaterialUploadView(views.APIView):
         ret = {'id': material.id, 'url': material.url, 'thumbnail_url': material.thumb_url}
         return Response(ret)
 
-    def destroy(self, request, pk=None):
-        instance = PetMaterial.objects.get(pk)
-        if instance is None:
-            raise Http404
-        instance.flag = 0
-        instance.save()
-        return Response({})
 
 
 class SpeciesListView(viewsets.ReadOnlyModelViewSet):
@@ -265,6 +281,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         queryset = PetLost.objects.filter(flag=1, audit_status=1, case_status=0, pet_type=pet_type)\
                                   .filter(create_time__gte=start_time)\
                                   .filter(create_time__lte=end_time)
+        queryset = queryset | PetLost.objects.filter(flag=1, found=instance)
         place_queryset = PetLost.objects.none()
         if place is not None:
             place_queryset = queryset.filter(place=place)
@@ -286,6 +303,14 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         else:
             return Response([])
 
+    @action(detail=True)
+    def create_lost(self, request, pk):
+        user_profile = get_user_profile(self.request)
+        found = self.get_object(pk)
+        lost = PetLostSerializer(request.data)
+        if lost.is_valid(raise_exception=True):
+            lost = lost.save(publisher=user_profile, found=found)
+            return Response(PetLostSerializer(lost).data)
 
 class ActionLogAPIView(views.APIView):
     obj_mapping = {
@@ -402,12 +427,8 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
         queryset = MessageThread.objects.filter(flag=1)\
                                         .filter(Q(user_a=user_profile)|Q(user_b=user_profile))
         thread_list = queryset.all()
-        page = self.paginate_queryset(thread_list)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        else:
-            return Response([])
+        serializer = self.get_serializer(thread_list, many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         user_profile = get_user_profile(request)
@@ -446,8 +467,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         if len(message_list) > 0:
             if user_profile not in (message_list[0].sender, message_list[0].receiver):
                 raise PermissionDenied
-        page = self.paginate_queryset(message_list)
-        serializer = self.get_serializer(page, many=True)
+        serializer = self.get_serializer(message_list, many=True)
         return self.get_paginated_response(serializer.data)
 
     def create(self, request, thread_pk=None):
@@ -457,8 +477,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             msg_thread = self.get_or_create_thread(user_profile, message.validated_data['receiver'])
             if msg_thread is None:
                 return Reponse({'detail': u'找不到消息主题'})
-        message.msg_thread = msg_thread
-        message = message.save(message.validated_data)
+        message = message.save(msg_thread=msg_thread)
         msg_thread.last_msg = message
         msg_thread.save()
         return Response(self.get_serializer(message).data)
@@ -481,6 +500,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             raise Http404
 
     def list(self, request, obj=None, obj_pk=None):
+        user_profile = get_user_profile(request)
         if obj == 'lost':
             queryset = Comment.objects.filter(flag=1, lost=obj_pk)
         elif obj == 'found':
@@ -501,3 +521,20 @@ class CommentViewSet(viewsets.ModelViewSet):
             comment = comment.save(**ext_arg)
             return Response(self.get_serializer(comment).data)
 
+
+class MyPostView(views.APIView, LimitOffsetPagination):
+    def get(self, request, obj):
+        user_profile = get_user_profile(request)
+        if obj == 'lost':
+            obj_class = PetLost
+            serializer_class = PetLostSerializer
+        elif obj == 'found':
+            obj_class = PetFound
+            serializer_class = PetFoundSerializer
+        else:
+            raise Http404
+        queryset = obj_class.objects.filter(flag=1, publisher=user_profile)
+        page = self.paginate_queryset(queryset.all(), request=request)
+        if page is not None:
+            serializer = serializer_class(page, many=True)
+            return self.get_paginated_response(serializer.data)

@@ -206,7 +206,7 @@ class Tag(models.Model):
 
     def save(self, *args, **kwargs):
         tag = Tag.objects.filter(name=self.name).first()
-        if tag != None:
+        if tag is not None:
             tag.count += 1
             return tag.save()
         else:
@@ -281,22 +281,6 @@ class MessageThread(models.Model):
 
     def __str__(self):
         return '%d:%s-%s@%s' % (self.id, self.user_a.nickname, self.user_b.nickname, self.create_time)
-
-
-class PetLostBoost(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_boost')
-    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
-    booster = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_boost')
-    create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
-                                       related_name='updated_boost')
-    last_update_time = models.DateTimeField(default=now)
-
-    def __str__(self):
-        return '%d:%s' % (self.id, self.publisher.nickname)
 
 
 class PetSpecies(models.Model):
@@ -398,38 +382,54 @@ class TagUsage(models.Model):
         ordering = ['-count', '-last_usage']
 
     def save(self, *args, **kwargs):
-        last_usage = datetime.now()
-        return super(TagUsage, self).save()
+        self.last_usage = datetime.now()
+        return super(TagUsage, self).save(*args, **kwargs)
 
 
 class FollowLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='follows')
-    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='follows')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='follow')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='follows')
     updated = models.CharField(max_length=SHORT_CHAR, choices=FLAG_CHOICE)
     create_time = models.DateTimeField(default=now)
+    obj_time = models.DateTimeField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.lost is not None:
+            self.obj_time = instance.lost.create_time
+        if self.found is not None:
+            self.obj_time = instance.found.create_time
+        super(FollowLog, self).save()
 
     class Meta:
-        ordering = ['-create_time']
+        ordering = ['-obj_time', '-create_time']
 
 
 class LikeLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='likes')
-    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='likes')
-    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='likes')
+    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='like')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='like')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='like')
     create_time = models.DateTimeField(default=now)
 
     class Meta:
         ordering = ['-create_time']
 
+class BoostLog(models.Model):
+    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost')
+    count = models.IntegerField(default=1)
+    create_time = models.DateTimeField(default=now)
+
 
 class RepostLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='reposts')
-    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='reposts')
-    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='reposts')
+    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='repost')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='repost')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='repost')
     create_time = models.DateTimeField(default=now)
 
     class Meta:

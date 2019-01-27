@@ -172,7 +172,7 @@ class FollowFeedsSerializer(serializers.ModelSerializer):
     class Meta:
         model = FollowLog
         fields = ('id', 'lost', 'found')
-        depth = 1
+        depth = 2
 
 
 class MessageSerializer(serializers.ModelSerializer):
