@@ -25,8 +25,8 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
     - `pet_type` 
     - `longitude`， 坐标小数，搜索范围0.1, 约22KM正方形范围
     - `latitude` 和`longitude`同时使用
-    - `date_range` 发布天数
-    - `place` 和 `longitude`/`latitude` 取交集
+    - `place` 和 `longitude`/`latitude` 取并集
+    - `date_range` 发布天数，和地点取交集
   
   - `CREATE` 新建lost对象
 2. `/pet/lost/<id>` 
@@ -65,7 +65,7 @@ Species对象字段 `('id', 'pet_type', 'name')`，`pet_type`: 1-猫, 2-狗, 0-�
 action: 点赞like, 转发repost, 收藏follow
 obj: lost, found
 
-1. `/pet/action/<action>)/<obj>/<id>/`
+1. `/pet/action/<action>/<obj>/<id>/`
   - `GET` 记录点赞/转发/收藏，参数`cancel=1`取消，返回action成功后的数量统计`{'count': <int>}`
 
 
@@ -78,7 +78,7 @@ Comment评论字段 `('id', 'publisher', 'reply_to', 'create_time',  'content',
   - `POST` 新建评论，成功返回对象
 
 ## message & message thread
-Message消息/私信，字段`('id', 'content', 'read_status', 'create_time', 'msg_thread', 'receiver', 'sender')`, 其中`msg\_thread`对因`MessageThread`
+Message消息/私信，字段`('id', 'content', 'read_status', 'create_time', 'msg_thread', 'receiver', 'sender')`, 其中`msg\_thread`对应`MessageThread`
 
 MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'user_a', 'user_b', 'message_type', 'last_msg')`, `last_msg`对应`Message`, `user_a`和`user_b` 是等同的
 
