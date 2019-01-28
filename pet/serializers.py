@@ -3,38 +3,28 @@ from rest_framework import serializers
 from pet.models import *
 #from wx_auth.serializer import UserBriefSerializer
 
-class ValidSlugField(serializers.SlugRelatedField):
-    def __init__(self, *args, **kwargs):
-        super(ValidSlugField, self).__init__(*args, **kwargs)
-
-    def get_queryset(self):
-        return super(ValidSlugField, self).get_queryset()#.filter(flag=True)
-
 
 class PetSpeciesSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetSpecies
         fields = ('id', 'pet_type', 'name')
-        extra_kwargs = {
-            "id": {
-                "read_only": False,
-                "required": False,
-            },
-        }
+        #extra_kwargs = {
+        #    "id": {
+        #        "read_only": False,
+        #        "required": False,
+        #    },
+        #}
+
 
 class TagSerializer(serializers.ModelSerializer):
-    def save(self, data):
-        return Tag(**data)
-
     class Meta:
         model = Tag
-        fields = ('id', 'count', 'name')
-        extra_kwargs = {
-            "id": {
-                "read_only": False,
-                "required": False,
-            },
-        }
+        fields = ('count', 'name')
+
+
+class RecommendedTagSerializer(serializers.Serializer):
+    top_tags = TagSerializer(many=True, read_only=True)
+    user_tags = TagSerializer(many=True, read_only=True)
 
 
 class PetMaterialSerializer(serializers.ModelSerializer):
@@ -51,43 +41,51 @@ class PetMaterialSerializer(serializers.ModelSerializer):
 
 class PetLostSerializer(serializers.ModelSerializer):
     # publisher = UserBriefSerializer(read_only=True)
-    materials = ValidSlugField(many=True, slug_field='url')
-    tags = TagSerializer(many=True)
+    materials = PetMaterialSerializer(many=True, required=False)
+    tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
     species = PetSpeciesSerializer(read_only=True)
-    materials = PetMaterialSerializer(many=True)
 
     def create(self, data):
-        materials_data = data.pop('materials')
-        tags_str = data.pop('tags')
+        materials = data.pop('materials') if 'materials' in data else []
+        tags_str = data.pop('tags') if 'tags' in data else []
 
-        lost = PetLost.objects.create(**data)
-        user = self.context['request'].user.profile.first()
+        instance = PetLost.objects.create(**data)
+        self.set_user(instance)
+        self.set_tags(instance, tags_str)
+        self.set_materials(instance, materials)
 
-        user_profile = None if user is None or user.is_anonymous else user.profile
+        instance.save()
+        return instance
 
-        lost.publisher = user_profile
-        lost.create_by = user_profile
-        lost.last_update_by = user_profile
+    def update(self, instance, data):
+        materials = data.pop('materials') if 'materials' in data else []
+        tags_str = data.pop('tags') if 'tags' in data else []
 
+        self.set_user(instance)
+        self.set_tags(instance, tags_str)
+        self.set_materials(instance, materials)
+
+        instance.save()
+        return instance
+
+    def set_materials(self, instance, materials):
+        instance.material_set.clear()
+        material_ids = [material['id'] for material in materials]
+        PetMaterial.objects.filter(id__in=material_ids).update(lost=instance)
+
+    def set_tags(self, instance, tags_str):
+        instance.tags.clear()
         for tag_str in tags_str:
-            tag, create = LostFoundTag.objects.get_or_create(name=tag_data)
-            if create:
-                tag.save()
-            lost.tags.add(tag)
+            tag, create = Tag.objects.get_or_create(name=tag_str)
+            instance.tags.add(tag)
+            tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user_profile)
 
-        return lost
-
-
-    def save(self):
-        data = self.validated_data
-        lost = super(PetLostSerializer, self).save()
-        ids = [m['id'] for m in data['materials']]
-        materials = PetMaterial.objects.filter(id__in=ids).all()
-        for mat in materials:
-            mat.lost = lost
-            mat.save()
-
-        return lost
+    def set_user(self, instance):
+        self.user = self.context['request'].user
+        self.user_profile = None if self.user is None or self.user.is_anonymous else self.user.profile
+        instance.publisher = self.user_profile
+        instance.create_by = self.user_profile
+        instance.last_update_by = self.user_profile
 
     class Meta:
         model = PetLost
@@ -113,41 +111,51 @@ class PetSpeciesSerializer(serializers.ModelSerializer):
 
 
 class PetFoundSerializer(serializers.ModelSerializer):
-    materials = ValidSlugField(many=True, slug_field='url')
-    tags = TagSerializer(many=True)
+    materials = PetMaterialSerializer(many=True, required=False)
+    tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
     species = PetSpeciesSerializer(read_only=True)
-    materials = PetMaterialSerializer(many=True)
+
+    def set_user(self, instance):
+        self.user = self.context['request'].user
+        self.user_profile = None if self.user is None or self.user.is_anonymous else self.user.profile
+        instance.publisher = self.user_profile
+        instance.create_by = self.user_profile
+        instance.last_update_by = self.user_profile
 
     def create(self, data):
-        materials_data = data.pop('materials')
-        tags_str = data.pop('tags')
+        materials = data.pop('materials') if 'materials' in data else []
+        tags_str = data.pop('tags') if 'tags' in data else []
 
-        found = PetFound.objects.create(**data)
-        user = self.context['request'].user
-        user_profile = None if user is None or user.is_anonymous else user.profile
+        instance = PetFound.objects.create(**data)
+        self.set_user(instance)
+        self.set_tags(instance, tags_str)
+        self.set_materials(instance, materials)
 
-        found.publisher = user_profile
-        found.create_by = user_profile
-        found.last_update_by = user_profile
+        instance.save()
+        return instance
 
+    def update(self, instance, data):
+        materials = data.pop('materials') if 'materials' in data else []
+        tags_str = data.pop('tags') if 'tags' in data else []
+
+        self.set_user(instance)
+        self.set_tags(instance, tags_str)
+        self.set_materials(instance, materials)
+
+        instance.save()
+        return instance
+
+    def set_materials(self, instance, materials):
+        instance.material_set.clear()
+        material_ids = [material['id'] for material in materials]
+        PetMaterial.objects.filter(id__in=material_ids).update(found=instance)
+
+    def set_tags(self, instance, tags_str):
+        instance.tags.clear()
         for tag_str in tags_str:
-            tag, create = Tag.objects.get_or_create(name=tag_data)
-            if create:
-                tag.save()
-            found.tags.add(tag)
-
-        return found
-
-    def save(self):
-        data = self.validated_data
-        found = super(PetFoundSerializer, self).save()
-        ids = [m['id'] for m in data['materials']]
-        materials = PetMaterial.objects.filter(id__in=ids).all()
-        for mat in materials:
-            mat.found = found
-            mat.save()
-
-        return found
+            tag, create = Tag.objects.get_or_create(name=tag_str)
+            instance.tags.add(tag)
+            tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user_profile)
 
     class Meta:
         model = PetFound
@@ -208,6 +216,11 @@ class MessageThreadSerializer(serializers.ModelSerializer):
         model = MessageThread
         fields = ('id', 'user_a', 'user_b', 'message_type', 'last_msg')
         read_only_fields = ('message_type',)
+
+
+class MessageAndThreadSerializer(serializers.Serializer):
+    msg_thread = MessageThreadSerializer(read_only=True)
+    messages = MessageSerializer(many=True, read_only=True)
 
 
 class CommentSerializer(serializers.ModelSerializer):

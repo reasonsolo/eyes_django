@@ -28,7 +28,7 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
     - `place` 和 `longitude`/`latitude` 取并集
     - `date_range` 发布天数，和地点取交集
   
-  - `CREATE` 新建lost对象
+  - `CREATE` 新建lost对象, tags字段可以直接使用自定义字符串列表，会自动创建新tag或复用已存在tag
 2. `/pet/lost/<id>` 
   - `GET` 返回lost对象
   - `POST` 修改对象，成功返回对象数据
@@ -82,13 +82,18 @@ Message消息/私信，字段`('id', 'content', 'read_status', 'create_time', 'm
 
 MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'user_a', 'user_b', 'message_type', 'last_msg')`, `last_msg`对应`Message`, `user_a`和`user_b` 是等同的
 
+MessageAndThread 消息和对话，`{'msg_thread': {}, 'messages': [...]}`
+
 1. `/pet/msg/threads/` 对话列表
   - `GET` 返回对话列表，未分页 
   - `POST` 新建对话，返回对象数据
 
 2. `/pet/msg/thread/<id>` 消息列表
-  - `GET` 返回消息列表，未分页
+  - `GET` 返回消息列表，未分页，返回 MessageAndThread
   - `POST` 新建消息，返回对象数据
+
+3. `/pet/msg/thread/<obj>/<id>`
+  - `GET` 关联obj到thread（点击obj的私信按钮，记录该行为），返回MessageAndThread
 
 
 ## user follow
@@ -107,7 +112,12 @@ MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'u
 
 
 ## tag
-TBD
+字段 `('count', 'name')`
+
+1. `/pet/tag`
+  - `GET` 返回tag列表，包含`top_tag`和 `user_tag` 2个列表， 2者可能存在重复
+  - `POST` 新建tag
+
 
 
 

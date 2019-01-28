@@ -134,7 +134,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
     def create_found(self, request, pk):
         user_profile = get_user_profile(self.request)
         lost = self.get_object(pk)
-        found = PetFoundSerializer(request.data)
+        found = PetFoundSerializer(data=request.data)
         if found.is_valid(raise_exception=True):
             found = found.save(publisher=user_profile, lost=lost)
             return Response(PetFoundSerializer(found).data)
@@ -418,6 +418,18 @@ class FollowFeedsView(viewsets.ModelViewSet):
             return Response([])
 
 
+def get_or_create_thread_by_user(user_a, user_b):
+    if user_a.id > user_b.id:
+        user_a, user_b = user_b, user_a
+    elif user_a.id == user_b.id:
+        raise PermissionDenied
+    msg_thread = MessageThread.objects.filter(flag=1, user_a=user_a, user_b=user_b).first()
+    if msg_thread is None:
+        msg_thread = MessageThread(user_a=user_a, user_b=user_b)
+        msg_thread.save()
+    return msg_thread
+
+
 class MessageThreadViewSet(viewsets.ModelViewSet):
     serializer_class = MessageThreadSerializer
     queryset = MessageThread.objects.filter(flag=1)
@@ -445,36 +457,45 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
             msg_thread.save()
         return Response(self.get_serializer(msg_thread).data)
 
+    @action(detail=True)
+    def relate_thread(self, request, obj, obj_pk):
+        user_profile = get_user_profile(request)
+        if obj == 'lost':
+            obj_class = PetLost
+        elif obj == 'found':
+            obj_class = PetFound
+        else:
+            raise Http404
+        related_obj = obj_class.objects.filter(pk).first()
+        if related_obj is None:
+            raise Http404
+        user_a = user_profile
+        user_b = related_obj.publisher
+        msg_thread = get_or_create_thread_by_user(user_a, user_b)
+        messages = Message.objects.filter(flag=1, msg_thread=msg_thread)
+        serializer = MessageAndThreadSerializer(msg_thread=msg_thread,
+                                                messages=messages)
+        return Response(serializer.data)
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     queryset = Message.objects.filter(flag=1)
 
-    def get_user_Q(user_a, user_b):
-        return (Q(user_a=user_a)&Q(user_b=user_b))|(Q(user_a=user_b)&Q(user_b=user_a))
-
-    def get_or_create_thread(self, user_a, user_b):
-        msg_thread = MessageThread.objects.filter(flag=1)\
-            .filter(__class__.get_user_Q(user_a, user_b)).first()
-        if msg_thread is None:
-            msg_thread = MessageThread(user_a=user_a, user_b=user_b)
-            msg_thread.save()
-        return msg_thread
-
     def list(self, request, thread_pk=None):
         user_profile = get_user_profile(request)
+        msg_thread = MessageThread.objects.filter(flag=1, pk=thread_pk).get()
         message_list = Message.objects.filter(flag=1, msg_thread=thread_pk).all()
-        if len(message_list) > 0:
-            if user_profile not in (message_list[0].sender, message_list[0].receiver):
-                raise PermissionDenied
-        serializer = self.get_serializer(message_list, many=True)
-        return self.get_paginated_response(serializer.data)
+        if user_profile != msg_thread.user_a and user_profile != msg_thread.user_b:
+            raise PermissionDenied
+        serializer = MessageAndThreadSerializer(messages=message_list, msg_thread=msg_thread)
+        return Response(serializer.data)
 
     def create(self, request, thread_pk=None):
         user_profile = get_user_profile(request)
         message = MessageSerializer(data=request.data, context={'request': request, 'sender': user_profile})
         if message.is_valid(raise_exception=True):
-            msg_thread = self.get_or_create_thread(user_profile, message.validated_data['receiver'])
+            msg_thread = get_or_create_thread_by_user(user_profile, message.validated_data['receiver'])
             if msg_thread is None:
                 return Reponse({'detail': u'找不到消息主题'})
         message = message.save(msg_thread=msg_thread)
@@ -538,3 +559,22 @@ class MyPostView(views.APIView, LimitOffsetPagination):
         if page is not None:
             serializer = serializer_class(page, many=True)
             return self.get_paginated_response(serializer.data)
+
+
+class TagView(views.APIView):
+    def get(self, request):
+        user_profile = get_user_profile(request)
+        top_tags = Tag.objects.filter(flag=1).order_by('-count')[:5]
+        user_tags = [tag_usage.tag for tag_usage in user_profile.tag_usage_set.all()]
+        serializer = RecommendedTagSerializer({'top_tags': top_tags, 'user_tags':user_tags})
+        return Response(serializer.data)
+
+    def post(self, request):
+        user_profile = get_user_profile(request)
+        tag = TagSerializer(data=request.data)
+        tag.is_valid(raise_exception=True)
+        tag = tag.save()
+        return Response(TagSerializer(tag).data)
+
+
+

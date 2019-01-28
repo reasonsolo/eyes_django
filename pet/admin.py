@@ -6,7 +6,7 @@ from pet.models import *
 class EyesAdminSite(admin.AdminSite):
     site_header = 'EyesAdministration'
 
-@admin.register(PetLost, PetFound, ContactRelation, PrivateContact,
+@admin.register(PetLost, PetFound,
  Comment, Message, Tag, PetSpecies,
  PetCaseClose, PetMaterial, LikeLog, RepostLog, FollowLog)
 class PetAdmin(admin.ModelAdmin):
