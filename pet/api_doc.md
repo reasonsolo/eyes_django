@@ -27,8 +27,8 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
     - `latitude` 和`longitude`同时使用
     - `place` 和 `longitude`/`latitude` 取并集
     - `date_range` 发布天数，和地点取交集
-  
-  - `CREATE` 新建lost对象, tags字段可以直接使用自定义字符串列表，会自动创建新tag或复用已存在tag
+  - `POST` 新建lost对象, tags字段可以直接使用自定义字符串列表，会自动创建新tag或复用已存在tag
+
 2. `/pet/lost/<id>` 
   - `GET` 返回lost对象
   - `POST` 修改对象，成功返回对象数据
@@ -36,6 +36,8 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
 3. `/pet/lost/match/<id>`
   - `GET` 返回匹配`lost<id>`的Found对象列表，可能是距离/时间/类型关联上的found，也包括直接提交的founda
   - `POST` 创建匹配`lost<id>`的Found对象，成功返回对象数据
+4. `/pet/lost/case/<id>`
+  - `GET` 修改lost状态，参数`case_status`, 0-有效，1-已结案，2-已关闭，返回对象
 
 ## found
 Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags',
@@ -45,6 +47,8 @@ Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags',
 1. `/pet/founds` 同 `/pet/losts`
 2. `/pet/found/<id>` 同 `/pet/lost/<id>`
 3. `/pet/found/match/<id>` 同 `/pet/lost/match/<id>`
+4. `/pet/found/case/<id>` 同 `/pet/lost/case/<id>`
+
 
 ## material 
 Material对象字段`('id', 'url', 'thumb_url')`
@@ -117,8 +121,5 @@ MessageAndThread 消息和对话，`{'msg_thread': {}, 'messages': [...]}`
 1. `/pet/tag`
   - `GET` 返回tag列表，包含`top_tag`和 `user_tag` 2个列表， 2者可能存在重复
   - `POST` 新建tag
-
-
-
 
 

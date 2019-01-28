@@ -139,6 +139,15 @@ class PetLostViewSet(viewsets.ModelViewSet):
             found = found.save(publisher=user_profile, lost=lost)
             return Response(PetFoundSerializer(found).data)
 
+    @action(detail=True)
+    def update_case_status(self, request, pk):
+        case_status = int(request.GET.get('case_status', '0'))
+        user_profile = get_user_profile(self.request)
+        instance = self.get_object(pk)
+        instance.case_status = case_status
+        instance.save()
+        return Response(self.get_serializer(instance).data)
+
 
 class MaterialViewSet(viewsets.ModelViewSet):
     queryset = PetMaterial.objects.filter(flag=1)
@@ -311,6 +320,15 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         if lost.is_valid(raise_exception=True):
             lost = lost.save(publisher=user_profile, found=found)
             return Response(PetLostSerializer(lost).data)
+
+    @action(detail=True)
+    def update_case_status(self, request, pk):
+        case_status = int(request.GET.get('case_status', '0'))
+        user_profile = get_user_profile(self.request)
+        instance = self.get_object(pk)
+        instance.case_status = case_status
+        instance.save()
+        return Response(self.get_serializer(instance).data)
 
 class ActionLogAPIView(views.APIView):
     obj_mapping = {
