@@ -1,8 +1,30 @@
 from wx_auth.apps import WxAuthConfig
 from wx_auth.models import UserProfile
+from django.contrib.auth.hashers import check_password
 
-def get_value(data, key, default):
-    return data[key] if data.has_key(key) else default
+def register(request):
+    account, token = get_user_info(request)
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    account.phone = body.get('phone', None)
+    if account.phone is None:
+        return False, account, token
+    else:
+        account.save()
+        return True, account, token
+
+def verify_password(username, password):
+    try:
+        user = UserProfile.objects.get(username=username).first()
+    except UserProfile.DoesNotExist:
+        return None
+    pwd_valid = check_password(password, user.password)
+    if pwd_valid:
+        return user
+    return None
+
+def get_user_by_name(name):
+    return UserProfile.get_by_name(name)
 
 def get_user_info(request):
     authorization = request.headers.get('Authorization')
@@ -13,21 +35,22 @@ def get_user_info(request):
     body = json.loads(body_unicode)
     if authorization:
         result, account_id = verify_auth(authorization)
-        account = UserProfile.objects.get(id=account_id)
-
     if result == False:
         openid = verify_wxapp(body['encrypted_data'], body['iv'], body['code'])
+    else:
+        account = UserProfile.objects.get(id=account_id)
+
     if openid:
         account = UserProfile.get_by_wxapp(openid)
         if not account:
             # create new account
             account = UserProfile.objects.create(wx_openid=openid,
-                        wx_nickname=get_value(body, 'wx_nickname', None),
-                        wx_avatar=get_value(body, 'wx_avatar', None),
-                        wx_gender=get_value(body, 'wx_gender', 0),
-                        wx_country=get_value(body, 'wx_country', None),
-                        wx_province=get_value(body, 'wx_province', None),
-                        wx_city=get_value(body, 'wx_city', None))
+                        wx_nickname=body.get('wx_nickname', None),
+                        wx_avatar=body.get('wx_avatar', None),
+                        wx_gender=body.get('wx_gender', 0),
+                        wx_country=body.get('wx_country', None),
+                        wx_province=body.get('wx_province', None),
+                        wx_city=body.get('wx_city', None))
             account.save()
     token = create_token(account)
     return account, token
@@ -63,8 +86,6 @@ def verify_auth(token):
 def verify_wxapp(encrypted_data, iv, code):
     user_info = get_wxapp_userinfo(encrypted_data, iv, code)
     return user_info.get('openId', None)
-        return account
-    raise Unauthorized('invalid_wxapp_code {0}'.format(code))
 
 def create_token(account):
     payload = {
@@ -73,7 +94,7 @@ def create_token(account):
         "exp": int(time.time()) + 86400 * 7,
         "aud": WxAuthConfig.AUDIENCE,
         "sub": str(account.id),
-        "nickname": account.nickname,
+        "nickname": account.wx_nickname,
         "scopes": ['open']
     }
     token = jwt.encode(payload, 'secret', algorithm='HS256')
