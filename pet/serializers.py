@@ -191,7 +191,7 @@ class MessageSerializer(serializers.ModelSerializer):
         return data
 
     def save(self, data):
-        user_profile = self.context['request'].user.profile
+        user_profile = self.context['request'].user
         data['sender'] = user_profile
         return Message(**data)
 
@@ -205,7 +205,7 @@ class MessageThreadSerializer(serializers.ModelSerializer):
     last_msg = MessageSerializer(read_only=True)
 
     def validate(self, data):
-        user_profile = self.context['request'].user.profile
+        user_profile = self.context['request'].user
         if data['user_a'] == data['user_b'] or\
             (data['user_a'] != user_profile and data['user_b'] != user_profile):
             raise serializers.ValidationError(u'发信用户错误')

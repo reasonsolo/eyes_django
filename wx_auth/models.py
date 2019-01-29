@@ -57,7 +57,7 @@ class UserManager(BaseUserManager):
         return self._create_user(username, password, **extra_fields)
 
 
-class UserProfile(DictableModel, AbstractBaseUser, PermissionsMixin):
+class User(DictableModel, AbstractBaseUser, PermissionsMixin):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     username = models.CharField(max_length=MID_CHAR, default=None, null=True, unique=True)
     #password = models.CharField(max_length=MID_CHAR, blank=True, null=True)

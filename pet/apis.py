@@ -25,7 +25,7 @@ mimetypes.init()
 
 # Create your views here.
 
-def get_user_profile(request):
+def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
         return request.user
     else:
@@ -73,22 +73,22 @@ class PetLostViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        user_profile = get_user_profile(self.request)
-        if user_profile is not None:
-            instance.last_update_by = user_profile
+        user = get_user(self.request)
+        if user is not None:
+            instance.last_update_by = user
             instance.save()
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        user_profile = get_user_profile(self.request)
-        if user_profile is not None:
-            instance.create_by = user_profile
+        user = get_user(self.request)
+        if user is not None:
+            instance.create_by = user
             instance.save()
 
     def perform_destroy(self, instance):
         instance.flag = 0
-        user_profile = get_user_profile(self.request)
-        instance.last_update_by = user_profile
+        user = get_user(self.request)
+        instance.last_update_by = user
         instance.save()
 
     @action(detail=True)
@@ -130,17 +130,17 @@ class PetLostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True)
     def create_found(self, request, pk):
-        user_profile = get_user_profile(self.request)
+        user = get_user(self.request)
         lost = self.get_object(pk)
         found = PetFoundSerializer(data=request.data)
         if found.is_valid(raise_exception=True):
-            found = found.save(publisher=user_profile, lost=lost)
+            found = found.save(publisher=user, lost=lost)
             return Response(PetFoundSerializer(found).data)
 
     @action(detail=True)
     def update_case_status(self, request, pk):
         case_status = int(request.GET.get('case_status', '0'))
-        user_profile = get_user_profile(self.request)
+        user = get_user(self.request)
         instance = self.get_object(pk)
         instance.case_status = case_status
         instance.save()
@@ -177,9 +177,9 @@ class MaterialUploadView(views.APIView):
         file_obj = request.FILES['file']
         mime = request.META.get('Content-Type', 'image/jpeg')
 
-        user_profile = None
+        user = None
         if request.user is not None and not request.user.is_anonymous:
-            user_profile = request.user.profile
+            user = request.user.profile
 
         fs = FileSystemStorage()
         filename, ext = self.gen_filename(mime)
@@ -198,7 +198,7 @@ class MaterialUploadView(views.APIView):
 
         material = PetMaterial(mime_type=mime, size=file_obj.size,
                             url=uploaded_url, thumb_url=thumb_url,
-                            create_by=user_profile, last_update_by=user_profile)
+                            create_by=user, last_update_by=user)
         material.save()
         ret = {'id': material.id, 'url': material.url, 'thumbnail_url': material.thumb_url}
         return Response(ret)
@@ -256,22 +256,22 @@ class PetFoundViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        user_profile = get_user_profile(self.request)
-        if user_profile is not None:
-            instance.last_update_by = user_profile
+        user = get_user(self.request)
+        if user is not None:
+            instance.last_update_by = user
             instance.save()
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        user_profile = get_user_profile(self.request)
-        if user_profile is not None:
-            instance.create_by = user_profile
+        user = get_user(self.request)
+        if user is not None:
+            instance.create_by = user
             instance.save()
 
     def perform_destroy(self, instance):
         instance.flag = 0
-        user_profile = get_user_profile(self.request)
-        instance.last_update_by = user_profile
+        user = get_user(self.request)
+        instance.last_update_by = user
         instance.save()
 
     @action(detail=True)
@@ -312,17 +312,17 @@ class PetFoundViewSet(viewsets.ModelViewSet):
 
     @action(detail=True)
     def create_lost(self, request, pk):
-        user_profile = get_user_profile(self.request)
+        user = get_user(self.request)
         found = self.get_object(pk)
         lost = PetLostSerializer(request.data)
         if lost.is_valid(raise_exception=True):
-            lost = lost.save(publisher=user_profile, found=found)
+            lost = lost.save(publisher=user, found=found)
             return Response(PetLostSerializer(lost).data)
 
     @action(detail=True)
     def update_case_status(self, request, pk):
         case_status = int(request.GET.get('case_status', '0'))
-        user_profile = get_user_profile(self.request)
+        user = get_user(self.request)
         instance = self.get_object(pk)
         instance.case_status = case_status
         instance.save()
@@ -349,16 +349,29 @@ class ActionLogAPIView(views.APIView):
             return self.follow(request, obj, pk)
         if action == 'like':
             return self.repost(request, obj, pk)
+        if action == 'boost':
+            return self.boost(request, obj, pk)
+
+    def boost(self, request, obj=None, pk=None):
+        cancel = int(request.GET.get('cancel', 0))
+        instance = self.get_object(obj, pk)
+        user = get_user(request)
+        like_log, create = BoostLog.objects.get_or_create(**{'user':user, obj:instance})
+
+        if cancel == 1:
+            if not create and boost_log.flag:
+                instance.boost_count -= 1
+                instance.save()
+        else:
+            if create or not like_log.flag:
+                instance.like_count += 1
+                instance.save()
 
     def like(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
-        user = request.user
-        if user is None or user.is_anonymous or user.profile is None:
-            print(user.is_anonymous, user.profile)
-            raise PermissionDenied
-        profile = user.profile
-        like_log, create = LikeLog.objects.get_or_create(**{'user':profile, obj:instance})
+        user = get_user(request)
+        like_log, create = LikeLog.objects.get_or_create(**{'user':user, obj:instance})
 
         if cancel == 1:
             if not create and like_log.flag:
@@ -376,11 +389,8 @@ class ActionLogAPIView(views.APIView):
     def follow(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
-        user = request.user
-        if user is None or user.is_anonymous or user.profile is None:
-            raise PermissionDenied
-        profile = user.profile
-        follow_log, create = FollowLog.objects.get_or_create(**{'user':profile, obj:instance})
+        user = get_user(request)
+        follow_log, create = FollowLog.objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and follow_log.flag:
                 instance.follow_count -= 1
@@ -422,8 +432,8 @@ class FollowFeedsView(viewsets.ModelViewSet):
     serializer_class = FollowFeedsSerializer
     queryset = FollowLog.objects.filter(flag=1)
     def list(self, request):
-        user_profile = get_user_profile(request)
-        queryset = FollowLog.objects.filter(flag=1, user=user_profile)
+        user = get_user(request)
+        queryset = FollowLog.objects.filter(flag=1, user=user)
 
         follow_list = queryset.all()
         page = self.paginate_queryset(follow_list)
@@ -451,23 +461,23 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
     queryset = MessageThread.objects.filter(flag=1)
 
     def list(self, request):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         queryset = MessageThread.objects.filter(flag=1)\
-                                        .filter(Q(user_a=user_profile)|Q(user_b=user_profile))
+                                        .filter(Q(user_a=user)|Q(user_b=user))
         thread_list = queryset.all()
         serializer = self.get_serializer(thread_list, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         msg_thread = MessageThread.objects.filter(flag=1)\
-                                          .filter(Q(user_a=user_profile)|Q(user_b=user_profile)).first()
+                                          .filter(Q(user_a=user)|Q(user_b=user)).first()
         if msg_thread is None:
             raise Http404
         return Response(self.get_serializer(msg_thread).data)
 
     def create(self, request):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         msg_thread = MessageThreadSerializer(data=request.data, context={'request': request})
         if msg_thread.is_valid():
             msg_thread.save()
@@ -475,7 +485,7 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
 
     @action(detail=True)
     def relate_thread(self, request, obj, obj_pk):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         if obj == 'lost':
             obj_class = PetLost
         elif obj == 'found':
@@ -485,7 +495,7 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
         related_obj = obj_class.objects.filter(pk).first()
         if related_obj is None:
             raise Http404
-        user_a = user_profile
+        user_a = user
         user_b = related_obj.publisher
         msg_thread = get_or_create_thread_by_user(user_a, user_b)
         messages = Message.objects.filter(flag=1, msg_thread=msg_thread)
@@ -499,19 +509,19 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.filter(flag=1)
 
     def list(self, request, thread_pk=None):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         msg_thread = MessageThread.objects.filter(flag=1, pk=thread_pk).get()
         message_list = Message.objects.filter(flag=1, msg_thread=thread_pk).all()
-        if user_profile != msg_thread.user_a and user_profile != msg_thread.user_b:
+        if user != msg_thread.user_a and user != msg_thread.user_b:
             raise PermissionDenied
         serializer = MessageAndThreadSerializer(messages=message_list, msg_thread=msg_thread)
         return Response(serializer.data)
 
     def create(self, request, thread_pk=None):
-        user_profile = get_user_profile(request)
-        message = MessageSerializer(data=request.data, context={'request': request, 'sender': user_profile})
+        user = get_user(request)
+        message = MessageSerializer(data=request.data, context={'request': request, 'sender': user})
         if message.is_valid(raise_exception=True):
-            msg_thread = get_or_create_thread_by_user(user_profile, message.validated_data['receiver'])
+            msg_thread = get_or_create_thread_by_user(user, message.validated_data['receiver'])
             if msg_thread is None:
                 return Reponse({'detail': u'找不到消息主题'})
         message = message.save(msg_thread=msg_thread)
@@ -537,7 +547,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             raise Http404
 
     def list(self, request, obj=None, obj_pk=None):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         if obj == 'lost':
             queryset = Comment.objects.filter(flag=1, lost=obj_pk)
         elif obj == 'found':
@@ -551,8 +561,8 @@ class CommentViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
 
     def create(self, request, obj, obj_pk):
-        user_profile = get_user_profile(request)
-        ext_arg = {'publisher': user_profile, obj: self.get_obj(obj, obj_pk)}
+        user = get_user(request)
+        ext_arg = {'publisher': user, obj: self.get_obj(obj, obj_pk)}
         comment = CommentSerializer(data=request.data)
         if comment.is_valid(raise_exception=True):
             comment = comment.save(**ext_arg)
@@ -561,7 +571,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 class MyPostView(views.APIView, LimitOffsetPagination):
     def get(self, request, obj):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         if obj == 'lost':
             obj_class = PetLost
             serializer_class = PetLostSerializer
@@ -570,7 +580,7 @@ class MyPostView(views.APIView, LimitOffsetPagination):
             serializer_class = PetFoundSerializer
         else:
             raise Http404
-        queryset = obj_class.objects.filter(flag=1, publisher=user_profile)
+        queryset = obj_class.objects.filter(flag=1, publisher=user)
         page = self.paginate_queryset(queryset.all(), request=request)
         if page is not None:
             serializer = serializer_class(page, many=True)
@@ -579,14 +589,14 @@ class MyPostView(views.APIView, LimitOffsetPagination):
 
 class TagView(views.APIView):
     def get(self, request):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         top_tags = Tag.objects.filter(flag=1).order_by('-count')[:5]
-        user_tags = [tag_usage.tag for tag_usage in user_profile.tag_usage_set.all()]
+        user_tags = [tag_usage.tag for tag_usage in user.tag_usage_set.all()]
         serializer = RecommendedTagSerializer({'top_tags': top_tags, 'user_tags':user_tags})
         return Response(serializer.data)
 
     def post(self, request):
-        user_profile = get_user_profile(request)
+        user = get_user(request)
         tag = TagSerializer(data=request.data)
         tag.is_valid(raise_exception=True)
         tag = tag.save()
