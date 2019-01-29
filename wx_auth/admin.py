@@ -3,6 +3,6 @@ from wx_auth.models import *
 # Register your models here.
 
 
-@admin.register(UserProfile)
+@admin.register(User)
 class WxAuthAdmin(admin.ModelAdmin):
     pass

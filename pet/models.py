@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils.timezone import now
 from separatedvaluesfield.models import SeparatedValuesField
 from datetime import datetime
-from wx_auth.models import UserProfile
+from wx_auth.models import User
 from datetime import datetime
 
 SHORT_CHAR=5
@@ -85,7 +85,7 @@ class FlaggedModelManager(models.Manager):
 
 class PetLost(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
+    publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
     gender = models.IntegerField(choices=GENDER_CHOICE, default=1)
@@ -111,10 +111,10 @@ class PetLost(models.Model):
     tags = models.ManyToManyField('Tag', blank=True)
     medical_status = SeparatedValuesField(max_length=MID_CHAR,choices=MEDICAL_STATUS,\
                                           blank=True, null=True)
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_pet_lost_set')
     create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
+    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_pet_lost_set')
     last_update_time = models.DateTimeField(default=now)
 
@@ -124,13 +124,13 @@ class PetLost(models.Model):
         ordering = ['-create_time']
 
     def __str__(self):
-        return '%d:%s@%s-%s' % (self.id, self.publisher.nickname if self.publisher is not None else 'None',
+        return '%d:%s@%s-%s' % (self.id, self.publisher.wx_nickname if self.publisher is not None else 'None',
                                 self.place, self.get_case_status_display())
 
 
 class PetFound(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found_set')
+    publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, default=1)
@@ -140,19 +140,23 @@ class PetFound(models.Model):
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     latitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+
     found_status = models.IntegerField(choices=FOUND_STATUS, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
+
     view_count = models.IntegerField(default=0)
     repost_count = models.IntegerField(default=0)
     follow_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
+    boost_count = models.IntegerField(default=0)
+
     tags = models.ManyToManyField('Tag', blank=True)
 
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_pet_found_set')
     create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
+    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_pet_found_set')
     last_update_time = models.DateTimeField(default=now)
 
@@ -161,7 +165,7 @@ class PetFound(models.Model):
         ordering = ['-create_time']
 
     def __str__(self):
-        return '%d:%s@%s-%s' % (self.id, self.publisher.nickname if self.publisher is not None else 'None',
+        return '%d:%s@%s-%s' % (self.id, self.publisher.wx_nickname if self.publisher is not None else 'None',
                                 self.place, self.get_case_status_display())
 
 
@@ -170,7 +174,7 @@ class Tag(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     name = models.CharField(max_length=MID_CHAR, unique=True, db_index=True)
     count = models.IntegerField(default=0)
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_lost_found_tag_set')
     create_time = models.DateTimeField(default=now)
 
@@ -186,7 +190,7 @@ class Tag(models.Model):
 class TagUsage(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     tag = models.ForeignKey('Tag', on_delete=models.SET_NULL, blank=True, null=True, related_name='tag_usage_set')
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='tag_usage_set')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='tag_usage_set')
     count = models.IntegerField(default=0)
     last_usage = models.DateTimeField(default=now)
 
@@ -204,16 +208,16 @@ class TagUsage(models.Model):
 
 class Comment(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    publisher = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='published_comment_set')
+    publisher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='published_comment_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, blank=True, related_name='comment_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, blank=True, related_name='comment_set')
     content = models.TextField()
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
     reply_to = models.ForeignKey('Comment', on_delete=models.SET_NULL, null=True, blank=True, related_name='reply_set')
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_comment_set')
     create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
+    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_comment_set')
     last_update_time = models.DateTimeField(default=now)
 
@@ -223,20 +227,20 @@ class Comment(models.Model):
 
     def __str__(self):
         return '%d:%s@%s' % (self.id,
-                             self.publisher.nickname if self.publisher is not None else 'anonymous',
+                             self.publisher.wx_nickname if self.publisher is not None else 'anonymous',
                              str(self.create_time))
 
 
 class Message(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    receiver = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='received_message_set')
-    sender = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='sent_message_set')
+    receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='received_message_set')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_message_set')
     content = models.TextField(default='')
     message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
     read_status = models.CharField(max_length=SHORT_CHAR, choices=READ_STATUS, default=0)
     msg_thread = models.ForeignKey('MessageThread', on_delete=models.SET_NULL, null=True, blank=True, related_name='message_set')
 
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_message_set')
     create_time = models.DateTimeField(default=now)
 
@@ -245,14 +249,14 @@ class Message(models.Model):
         ordering = ['create_time']
 
     def __str__(self):
-        return '%d:%s->%s@%s' (self.id, self.sender.nickname, self.receiver.nickname, str(self.create_time))
+        return '%d:%s->%s@%s' (self.id, self.sender.wx_nickname, self.receiver.wx_nickname, str(self.create_time))
 
 
 class MessageThread(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
-    user_a = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='message_as_a_set')
-    user_b = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='message_as_b_set')
+    user_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='message_as_a_set')
+    user_b = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='message_as_b_set')
     last_msg = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True)
     create_time = models.DateTimeField(default=now)
 
@@ -266,7 +270,7 @@ class MessageThread(models.Model):
             return thread
 
     def __str__(self):
-        return '%d:%s-%s@%s' % (self.id, self.user_a.nickname, self.user_b.nickname, self.create_time)
+        return '%d:%s-%s@%s' % (self.id, self.user_a.wx_nickname, self.user_b.wx_nickname, self.create_time)
 
     class Meta:
         unique_together = ('user_a', 'user_b')
@@ -308,10 +312,10 @@ class PetLostFoundMatch(models.Model):
     contact_status = models.IntegerField(choices=CONTACT_TYPE, blank=False, null=False)
     static_score = models.IntegerField(default=None)
     feedback_score = models.IntegerField(default=None)
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_match_set')
     create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
+    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_match_set')
     last_update_time = models.DateTimeField(default=now)
 
@@ -330,10 +334,10 @@ class PetCaseClose(models.Model):
     like_count = models.IntegerField(default=0)
     reward_charge_status = models.IntegerField(choices=CHARGE_STATUS, default=0)
     reward_charge_amount = models.IntegerField(default=0, help_text='单位分')
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_case_close_set')
     create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL, blank=True, null=True,\
+    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
                                        related_name='updated_case_close_set')
     last_update_time = models.DateTimeField(default=now)
 
@@ -349,7 +353,7 @@ class PetMaterial(models.Model):
     url = models.URLField(max_length=LONG_CHAR, blank=True, null=True)
     thumb_url = models.URLField(max_length=LONG_CHAR, blank=True, null=True)
     full_path = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    create_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True,\
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
                                   related_name='created_material_set')
     create_time = models.DateTimeField(default=now)
 
@@ -386,7 +390,7 @@ class PetFoundInteractHourly(models.Model):
 
 class FollowLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     updated = models.CharField(max_length=SHORT_CHAR, choices=FLAG_CHOICE)
@@ -408,7 +412,7 @@ class FollowLog(models.Model):
 
 class LikeLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
     create_time = models.DateTimeField(default=now)
@@ -419,7 +423,7 @@ class LikeLog(models.Model):
 
 class BoostLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
     count = models.IntegerField(default=1)
@@ -433,7 +437,7 @@ class BoostLog(models.Model):
 
 class RepostLog(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    user = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
     create_time = models.DateTimeField(default=now)
