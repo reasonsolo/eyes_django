@@ -177,9 +177,7 @@ class MaterialUploadView(views.APIView):
         file_obj = request.FILES['file']
         mime = request.META.get('Content-Type', 'image/jpeg')
 
-        user = None
-        if request.user is not None and not request.user.is_anonymous:
-            user = request.user.profile
+        user = get_user(request)
 
         fs = FileSystemStorage()
         filename, ext = self.gen_filename(mime)
@@ -408,11 +406,8 @@ class ActionLogAPIView(views.APIView):
     def repost(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
-        user = request.user
-        if user is None or user.is_anonymous or user.profile is None:
-            raise PermissionDenied
-        profile = user.profile
-        repost_log, create = RepostLog.objects.get_or_create(**{'user':profile, obj:instance})
+        user = get_user(request)
+        repost_log, create = RepostLog.objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and repost_log.flag:
                 instance.repost_count -= 1
@@ -519,7 +514,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def create(self, request, thread_pk=None):
         user = get_user(request)
-        message = MessageSerializer(data=request.data, context={'request': request, 'sender': user})
+        message = MessageSerializer(data=request.data, context={'request': request})
         if message.is_valid(raise_exception=True):
             msg_thread = get_or_create_thread_by_user(user, message.validated_data['receiver'])
             if msg_thread is None:

@@ -154,7 +154,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
         for tag_str in tags_str:
             tag, create = Tag.objects.get_or_create(name=tag_str)
             instance.tags.add(tag)
-            tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user_profile)
+            tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user)
 
     class Meta:
         model = PetFound
@@ -184,15 +184,9 @@ class FollowFeedsSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
 
-    def validate(self, data):
-        user_profile = self.context['sender']
-        if user_profile is None or user_profile == data['receiver']:
-            raise serializers.ValidationError(u'用户未登录/不匹配')
-        return data
-
     def save(self, data):
-        user_profile = self.context['request'].user
-        data['sender'] = user_profile
+        user = self.context['request'].user
+        data['sender'] = user
         return Message(**data)
 
     class Meta:
@@ -205,9 +199,9 @@ class MessageThreadSerializer(serializers.ModelSerializer):
     last_msg = MessageSerializer(read_only=True)
 
     def validate(self, data):
-        user_profile = self.context['request'].user
+        user = self.context['request'].user
         if data['user_a'] == data['user_b'] or\
-            (data['user_a'] != user_profile and data['user_b'] != user_profile):
+            (data['user_a'] != user and data['user_b'] != user):
             raise serializers.ValidationError(u'发信用户错误')
         return data
 
