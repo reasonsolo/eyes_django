@@ -26,12 +26,10 @@ mimetypes.init()
 # Create your views here.
 
 def get_user_profile(request):
-    user_profile = None
     if request.user is not None and not request.user.is_anonymous:
-        user_profile = request.user.profile
+        return request.user
     else:
         raise PermissionDenied
-    return user_profile
 
 class PetLostViewSet(viewsets.ModelViewSet):
     queryset = PetLost.objects.filter(flag=1)

@@ -1,10 +1,11 @@
 from rest_framework import serializers
-from wx_auth.models import User
+from wx_auth.models import UserProfile
 
 class UserBriefSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ('avatar_thumb', 'nickname')
+        model = UserProfile
+        fields = ('id', 'wx_nickname', 'wx_avatar')
 
 class UserFullSerialiser(serializers.ModelSerializer):
-    pass
+    class Meta:
+        model = UserProfile

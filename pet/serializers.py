@@ -1,7 +1,7 @@
 # encoding: utf-8
 from rest_framework import serializers
 from pet.models import *
-#from wx_auth.serializer import UserBriefSerializer
+from wx_auth.serializers import UserBriefSerializer
 
 
 class PetSpeciesSerializer(serializers.ModelSerializer):
@@ -40,7 +40,7 @@ class PetMaterialSerializer(serializers.ModelSerializer):
 
 
 class PetLostSerializer(serializers.ModelSerializer):
-    # publisher = UserBriefSerializer(read_only=True)
+    publisher = UserBriefSerializer(read_only=True)
     materials = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
     species = PetSpeciesSerializer(read_only=True)
@@ -78,14 +78,13 @@ class PetLostSerializer(serializers.ModelSerializer):
         for tag_str in tags_str:
             tag, create = Tag.objects.get_or_create(name=tag_str)
             instance.tags.add(tag)
-            tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user_profile)
+            tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user)
 
     def set_user(self, instance):
         self.user = self.context['request'].user
-        self.user_profile = None if self.user is None or self.user.is_anonymous else self.user.profile
-        instance.publisher = self.user_profile
-        instance.create_by = self.user_profile
-        instance.last_update_by = self.user_profile
+        instance.publisher = self.user
+        instance.create_by = self.user
+        instance.last_update_by = self.user
 
     class Meta:
         model = PetLost
@@ -111,16 +110,16 @@ class PetSpeciesSerializer(serializers.ModelSerializer):
 
 
 class PetFoundSerializer(serializers.ModelSerializer):
+    publisher = UserBriefSerializer(read_only=True)
     materials = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
     species = PetSpeciesSerializer(read_only=True)
 
     def set_user(self, instance):
         self.user = self.context['request'].user
-        self.user_profile = None if self.user is None or self.user.is_anonymous else self.user.profile
-        instance.publisher = self.user_profile
-        instance.create_by = self.user_profile
-        instance.last_update_by = self.user_profile
+        instance.publisher = self.user
+        instance.create_by = self.user
+        instance.last_update_by = self.user
 
     def create(self, data):
         materials = data.pop('materials') if 'materials' in data else []
@@ -224,6 +223,7 @@ class MessageAndThreadSerializer(serializers.Serializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    publisher = UserBriefSerializer(read_only=True)
     reply_to = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.filter(flag=1), required=False)
 
     class Meta:

@@ -38,7 +38,7 @@ found_match = PetFoundViewSet.as_view({
     'get': 'match_lost',
 	'post': 'create_lost',
 })
-found_case = PetFoundViewSet.as_view({
+found_status = PetFoundViewSet.as_view({
     'get': 'update_case_status',
 })
 
@@ -81,7 +81,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^losts/$', lost_list, name='lost-list'),
     url(r'^lost/(?P<pk>[0-9]+)/$', lost_detail, name='lost-detail'),
     url(r'^lost/match/(?P<pk>[0-9]+)/$', lost_match, name='lost-match'),
-    url(r'^lost/case/(?P<pk>[0-9]+)/$', lost_case, name='lost-case'),
+    url(r'^lost/status/(?P<pk>[0-9]+)/$', lost_status, name='lost-status'),
 
     url(r'^material/upload$', MaterialUploadView.as_view(), name='material-upload'),
 	url(r'^material/(?P<pk>[0-9]+)/$', material_detail, name='material-detail'),
@@ -91,7 +91,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^founds/$', found_list, name='found-list'),
     url(r'^found/(?P<pk>[0-9]+)/$', found_detail, name='found-detail'),
     url(r'^found/match/(?P<pk>[0-9]+)/$', found_match, name='found-match'),
-    url(r'^found/case/(?P<pk>[0-9]+)/$', found_case, name='found-case'),
+    url(r'^found/status/(?P<pk>[0-9]+)/$', found_status, name='found-status'),
 
     url(r'^action/(?P<action>like|repost|follow)/(?P<obj>lost|found)/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view()),
 
