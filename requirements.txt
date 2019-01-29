@@ -1,2 +1,3 @@
 django-separatedvaluesfield
 djangorestframework
+django-reset-auth

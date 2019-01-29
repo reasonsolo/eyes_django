@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.conf import settings
 from django.db.models.query import QuerySet, EmptyQuerySet
+from django.db.models import Q
 from django.http import Http404, HttpResponseForbidden
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
@@ -9,12 +10,14 @@ from rest_framework import viewsets, views, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser
+from rest_framework.pagination import LimitOffsetPagination
 
 from pet.models import *
 from pet.serializers import *
 
 from datetime import datetime, timedelta
 from PIL import Image, ImageOps
+from collections import namedtuple
 import mimetypes
 import io
 import uuid
@@ -23,10 +26,10 @@ mimetypes.init()
 # Create your views here.
 
 def get_user_profile(request):
-    user_profile = None
     if request.user is not None and not request.user.is_anonymous:
-        user_profile = request.user.profile
-    return user_profile
+        return request.user
+    else:
+        raise PermissionDenied
 
 class PetLostViewSet(viewsets.ModelViewSet):
     queryset = PetLost.objects.filter(flag=1)
@@ -103,6 +106,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         queryset = PetFound.objects.filter(flag=1, audit_status=1, case_status=0, pet_type=pet_type)\
                                    .filter(create_time__gte=start_time)\
                                    .filter(create_time__lte=end_time)
+        queryset = queryset | PetFound.objects.filter(flag=1, lost=instance)
         place_queryset = PetFound.objects.none()
         if place is not None:
             place_queryset = queryset.filter(place=place)
@@ -124,6 +128,36 @@ class PetLostViewSet(viewsets.ModelViewSet):
         else:
             return Response([])
 
+    @action(detail=True)
+    def create_found(self, request, pk):
+        user_profile = get_user_profile(self.request)
+        lost = self.get_object(pk)
+        found = PetFoundSerializer(data=request.data)
+        if found.is_valid(raise_exception=True):
+            found = found.save(publisher=user_profile, lost=lost)
+            return Response(PetFoundSerializer(found).data)
+
+    @action(detail=True)
+    def update_case_status(self, request, pk):
+        case_status = int(request.GET.get('case_status', '0'))
+        user_profile = get_user_profile(self.request)
+        instance = self.get_object(pk)
+        instance.case_status = case_status
+        instance.save()
+        return Response(self.get_serializer(instance).data)
+
+
+class MaterialViewSet(viewsets.ModelViewSet):
+    queryset = PetMaterial.objects.filter(flag=1)
+    serializer_class = PetMaterialSerializer
+
+    def perform_destroy(self, instance):
+        instance.flag = 0
+        instance.save()
+
+    def perform_retrieve(self, instance):
+        if instance.flag == 0:
+            raise Http404
 
 
 class ImageUploadParser(FileUploadParser):
@@ -168,6 +202,7 @@ class MaterialUploadView(views.APIView):
         material.save()
         ret = {'id': material.id, 'url': material.url, 'thumbnail_url': material.thumb_url}
         return Response(ret)
+
 
 
 class SpeciesListView(viewsets.ReadOnlyModelViewSet):
@@ -253,6 +288,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         queryset = PetLost.objects.filter(flag=1, audit_status=1, case_status=0, pet_type=pet_type)\
                                   .filter(create_time__gte=start_time)\
                                   .filter(create_time__lte=end_time)
+        queryset = queryset | PetLost.objects.filter(flag=1, found=instance)
         place_queryset = PetLost.objects.none()
         if place is not None:
             place_queryset = queryset.filter(place=place)
@@ -274,71 +310,287 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         else:
             return Response([])
 
+    @action(detail=True)
+    def create_lost(self, request, pk):
+        user_profile = get_user_profile(self.request)
+        found = self.get_object(pk)
+        lost = PetLostSerializer(request.data)
+        if lost.is_valid(raise_exception=True):
+            lost = lost.save(publisher=user_profile, found=found)
+            return Response(PetLostSerializer(lost).data)
+
+    @action(detail=True)
+    def update_case_status(self, request, pk):
+        case_status = int(request.GET.get('case_status', '0'))
+        user_profile = get_user_profile(self.request)
+        instance = self.get_object(pk)
+        instance.case_status = case_status
+        instance.save()
+        return Response(self.get_serializer(instance).data)
 
 class ActionLogAPIView(views.APIView):
     obj_mapping = {
         'lost': PetLost,
         'found': PetFound,
     }
+
     def get_object(self, obj, pk):
         try:
-            obj_model = obj_mapping[obj]
+            obj_model = ActionLogAPIView.obj_mapping[obj]
             instance = obj_model.objects.get(pk=pk)
             return instance
         except:
             raise Http404
 
+    def get(self, request, action, obj, pk):
+        if action == 'like':
+            return self.like(request, obj, pk)
+        if action == 'follow':
+            return self.follow(request, obj, pk)
+        if action == 'like':
+            return self.repost(request, obj, pk)
+
     def like(self, request, obj=None, pk=None):
-        cancel = request.GET.get('cancel', False)
+        cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
         user = request.user
-        instance.like_count += 1
-        instance.save()
         if user is None or user.is_anonymous or user.profile is None:
+            print(user.is_anonymous, user.profile)
             raise PermissionDenied
+        profile = user.profile
+        like_log, create = LikeLog.objects.get_or_create(**{'user':profile, obj:instance})
+
+        if cancel == 1:
+            if not create and like_log.flag:
+                instance.like_count -= 1
+                instance.save()
         else:
-            profile = user.profile
-            like_log, create = LikeLog.objects.get_or_create(**{'user':profile, obj:instance})
-            if cancel:
-                like_log.flag = False
-            if cancel or create:
-                like_log.save()
+            if create or not like_log.flag:
+                instance.like_count += 1
+                instance.save()
+
+        like_log.flag = False if cancel == 1 else True
+        like_log.save()
         return Response({'count': instance.like_count})
 
     def follow(self, request, obj=None, pk=None):
-        cancel = request.GET.get('cancel', False)
+        cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
         user = request.user
-        instance.follow_count += 1
-        instance.save()
         if user is None or user.is_anonymous or user.profile is None:
             raise PermissionDenied
+        profile = user.profile
+        follow_log, create = FollowLog.objects.get_or_create(**{'user':profile, obj:instance})
+        if cancel == 1:
+            if not create and follow_log.flag:
+                instance.follow_count -= 1
+                instance.save()
         else:
-            profile = user.profile
-            follow_log, create = FollowLog.objects.get_or_create(**{'user':profile, obj:instance})
-            if cancel:
-                follow_log.flag = False
-            if cancel or create:
-                follow_log.save()
+            if create or not follow_log.flag:
+                instance.follow_count += 1
+                instance.save()
+
+        follow_log.flag = False if cancel == 1 else True
+        follow_log.save()
         return Response({'count': instance.follow_count})
 
 
-    def repost(self, request, pk=None):
-        cancel = request.GET.get('cancel', False)
-        instance = self.get_object()
+    def repost(self, request, obj=None, pk=None):
+        cancel = int(request.GET.get('cancel', 0))
+        instance = self.get_object(obj, pk)
         user = request.user
-        instance.repost_count += 1
-        instance.save()
         if user is None or user.is_anonymous or user.profile is None:
             raise PermissionDenied
+        profile = user.profile
+        repost_log, create = RepostLog.objects.get_or_create(**{'user':profile, obj:instance})
+        if cancel == 1:
+            if not create and repost_log.flag:
+                instance.repost_count -= 1
+                instance.save()
         else:
-            profile = user.profile
-            repost_log, create = RepostLog.objects.get_or_create(**{'user':profile, obj:instance})
-            if cancel:
-                repost_log.flag = False
-            if cancel or create:
-                repost_log.save()
+            if create or not repost_log.flag:
+                instance.repost_count += 1
+                instance.save()
+
+        repost_log.flag = False if cancel == 1 else True
+        repost_log.save()
         return Response({'count': instance.repost_count})
+
+
+# TimelineTuple = namedtuple('Timeline', ('lost', 'found'))
+class FollowFeedsView(viewsets.ModelViewSet):
+    serializer_class = FollowFeedsSerializer
+    queryset = FollowLog.objects.filter(flag=1)
+    def list(self, request):
+        user_profile = get_user_profile(request)
+        queryset = FollowLog.objects.filter(flag=1, user=user_profile)
+
+        follow_list = queryset.all()
+        page = self.paginate_queryset(follow_list)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        else:
+            return Response([])
+
+
+def get_or_create_thread_by_user(user_a, user_b):
+    if user_a.id > user_b.id:
+        user_a, user_b = user_b, user_a
+    elif user_a.id == user_b.id:
+        raise PermissionDenied
+    msg_thread = MessageThread.objects.filter(flag=1, user_a=user_a, user_b=user_b).first()
+    if msg_thread is None:
+        msg_thread = MessageThread(user_a=user_a, user_b=user_b)
+        msg_thread.save()
+    return msg_thread
+
+
+class MessageThreadViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageThreadSerializer
+    queryset = MessageThread.objects.filter(flag=1)
+
+    def list(self, request):
+        user_profile = get_user_profile(request)
+        queryset = MessageThread.objects.filter(flag=1)\
+                                        .filter(Q(user_a=user_profile)|Q(user_b=user_profile))
+        thread_list = queryset.all()
+        serializer = self.get_serializer(thread_list, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        user_profile = get_user_profile(request)
+        msg_thread = MessageThread.objects.filter(flag=1)\
+                                          .filter(Q(user_a=user_profile)|Q(user_b=user_profile)).first()
+        if msg_thread is None:
+            raise Http404
+        return Response(self.get_serializer(msg_thread).data)
+
+    def create(self, request):
+        user_profile = get_user_profile(request)
+        msg_thread = MessageThreadSerializer(data=request.data, context={'request': request})
+        if msg_thread.is_valid():
+            msg_thread.save()
+        return Response(self.get_serializer(msg_thread).data)
+
+    @action(detail=True)
+    def relate_thread(self, request, obj, obj_pk):
+        user_profile = get_user_profile(request)
+        if obj == 'lost':
+            obj_class = PetLost
+        elif obj == 'found':
+            obj_class = PetFound
+        else:
+            raise Http404
+        related_obj = obj_class.objects.filter(pk).first()
+        if related_obj is None:
+            raise Http404
+        user_a = user_profile
+        user_b = related_obj.publisher
+        msg_thread = get_or_create_thread_by_user(user_a, user_b)
+        messages = Message.objects.filter(flag=1, msg_thread=msg_thread)
+        serializer = MessageAndThreadSerializer(msg_thread=msg_thread,
+                                                messages=messages)
+        return Response(serializer.data)
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    queryset = Message.objects.filter(flag=1)
+
+    def list(self, request, thread_pk=None):
+        user_profile = get_user_profile(request)
+        msg_thread = MessageThread.objects.filter(flag=1, pk=thread_pk).get()
+        message_list = Message.objects.filter(flag=1, msg_thread=thread_pk).all()
+        if user_profile != msg_thread.user_a and user_profile != msg_thread.user_b:
+            raise PermissionDenied
+        serializer = MessageAndThreadSerializer(messages=message_list, msg_thread=msg_thread)
+        return Response(serializer.data)
+
+    def create(self, request, thread_pk=None):
+        user_profile = get_user_profile(request)
+        message = MessageSerializer(data=request.data, context={'request': request, 'sender': user_profile})
+        if message.is_valid(raise_exception=True):
+            msg_thread = get_or_create_thread_by_user(user_profile, message.validated_data['receiver'])
+            if msg_thread is None:
+                return Reponse({'detail': u'找不到消息主题'})
+        message = message.save(msg_thread=msg_thread)
+        msg_thread.last_msg = message
+        msg_thread.save()
+        return Response(self.get_serializer(message).data)
+
+    def perform_destroy(self, instance):
+        instance.flag=0
+        instance.save()
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    queryset = Message.objects.filter(flag=1)
+
+    def get_obj(self, obj, obj_pk):
+        if obj == 'lost':
+            return PetLost.objects.filter(flag=1, pk=obj_pk).get()
+        elif obj == 'found':
+            return PetFound.objects.filter(flag=1, pk=obj_pk).get()
+        else:
+            raise Http404
+
+    def list(self, request, obj=None, obj_pk=None):
+        user_profile = get_user_profile(request)
+        if obj == 'lost':
+            queryset = Comment.objects.filter(flag=1, lost=obj_pk)
+        elif obj == 'found':
+            queryset = Comment.objects.filter(flag=1, found=obj_pk)
+        else:
+            raise Http404
+
+        page = self.paginate_queryset(queryset.all())
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+    def create(self, request, obj, obj_pk):
+        user_profile = get_user_profile(request)
+        ext_arg = {'publisher': user_profile, obj: self.get_obj(obj, obj_pk)}
+        comment = CommentSerializer(data=request.data)
+        if comment.is_valid(raise_exception=True):
+            comment = comment.save(**ext_arg)
+            return Response(self.get_serializer(comment).data)
+
+
+class MyPostView(views.APIView, LimitOffsetPagination):
+    def get(self, request, obj):
+        user_profile = get_user_profile(request)
+        if obj == 'lost':
+            obj_class = PetLost
+            serializer_class = PetLostSerializer
+        elif obj == 'found':
+            obj_class = PetFound
+            serializer_class = PetFoundSerializer
+        else:
+            raise Http404
+        queryset = obj_class.objects.filter(flag=1, publisher=user_profile)
+        page = self.paginate_queryset(queryset.all(), request=request)
+        if page is not None:
+            serializer = serializer_class(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+
+class TagView(views.APIView):
+    def get(self, request):
+        user_profile = get_user_profile(request)
+        top_tags = Tag.objects.filter(flag=1).order_by('-count')[:5]
+        user_tags = [tag_usage.tag for tag_usage in user_profile.tag_usage_set.all()]
+        serializer = RecommendedTagSerializer({'top_tags': top_tags, 'user_tags':user_tags})
+        return Response(serializer.data)
+
+    def post(self, request):
+        user_profile = get_user_profile(request)
+        tag = TagSerializer(data=request.data)
+        tag.is_valid(raise_exception=True)
+        tag = tag.save()
+        return Response(TagSerializer(tag).data)
 
 
 

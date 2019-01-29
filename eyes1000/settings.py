@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     'pet',
     'wx_auth',
     'rest_framework',
+	'rest_framework.authtoken',
+	'rest_auth',  # auth for test
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -147,5 +149,9 @@ THUMB_SIZE = (100, 100)
 #AUTH_USER_MODEL = 'wx_auth.UserAccount'
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
+	'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+	)
 }

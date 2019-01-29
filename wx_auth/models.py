@@ -19,12 +19,13 @@ GENDER_CHOICE = (
     (1, 'Male'),
     (2, 'Female'),
 )
+
 class DictableModel:
     def to_dict(self):
         fields = []
         for field in self._meta.fields:
             fields.append(field.name)
-    
+
         d = {}
         import datetime
         for attr in fields:
@@ -35,6 +36,7 @@ class DictableModel:
             else:
                 d[attr] = getattr(self, attr)
         return d
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -53,6 +55,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_register', True)
         return self._create_user(username, password, **extra_fields)
+
 
 class UserProfile(DictableModel, AbstractBaseUser, PermissionsMixin):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
