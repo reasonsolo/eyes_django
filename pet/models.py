@@ -447,4 +447,3 @@ class RepostLog(models.Model):
     class Meta:
         ordering = ['-create_time']
 
-
