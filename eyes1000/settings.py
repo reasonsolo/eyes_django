@@ -98,6 +98,9 @@ DATABASES = {
 # }
 
 
+AUTHENTICATION_BACKENDS = ['wx_auth.backends.AuthBackend','django.contrib.auth.backends.ModelBackend']
+AUTH_USER_MODEL = 'wx_auth.UserProfile'
+
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
 
