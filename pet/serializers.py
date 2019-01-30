@@ -71,7 +71,7 @@ class PetLostSerializer(serializers.ModelSerializer):
     def set_materials(self, instance, materials):
         instance.material_set.clear()
         material_ids = [material['id'] for material in materials]
-        PetMaterial.objects.filter(id__in=material_ids).update(lost=instance)
+        PetMaterial.objects.filter(id__in=material_ids, publisher=self.user).update(lost=instance)
 
     def set_tags(self, instance, tags_str):
         instance.tags.clear()
@@ -147,7 +147,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
     def set_materials(self, instance, materials):
         instance.material_set.clear()
         material_ids = [material['id'] for material in materials]
-        PetMaterial.objects.filter(id__in=material_ids).update(found=instance)
+        PetMaterial.objects.filter(id__in=material_ids, publisher=self.user).update(found=instance)
 
     def set_tags(self, instance, tags_str):
         instance.tags.clear()
@@ -225,3 +225,30 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('id', 'publisher', 'reply_to', 'create_time',  'content',
                   'last_update_time')
         depth = 1
+
+class PetCaseCloseSerializer(serializers.ModelSerializer):
+    lost = PetLostSerializer(read_only=True)
+    found = PetLostSerializer(read_only=True)
+    materials = PetMaterialSerializer(many=True)
+
+    def create(self, data):
+        materials = data.pop('materials') if 'materials' in data else []
+        tags_str = data.pop('tags') if 'tags' in data else []
+
+        instance = PetCaseClose.objects.create(**data)
+        self.set_user(instance)
+        self.set_materials(instance, materials)
+
+        instance.save()
+        return instance
+
+    def set_materials(self, instance, materials):
+        instance.material_set.clear()
+        material_ids = [material['id'] for material in materials]
+        PetMaterial.objects.filter(id__in=material_ids, publisher=self.user).update(close=instance)
+
+    class Meta:
+        model = PetCaseClose
+        fields = ('id', 'lost', 'found', 'description', 'materials')
+
+

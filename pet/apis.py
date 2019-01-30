@@ -32,6 +32,18 @@ def get_user(request):
     else:
         raise PermissionDenied
 
+def get_obj(self, obj, obj_pk, user):
+    instance = None
+    if obj == 'lost':
+        instance = PetLost.objects.filter(pk=obj_pk).get()
+    elif obj == 'found':
+        instance = PetFound.objects.filter(pk=obj_pk).get()
+    else:
+        raise Http404
+    if (instance.case_status == 2 and instance.audit_status != 1) or instance.publisher != user:
+        raise PermissionDenied
+    return instance
+
 class PetLostViewSet(viewsets.ModelViewSet):
     queryset = PetLost.objects
     serializer_class = PetLostSerializer
@@ -67,9 +79,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, pk=None):
         user = get_user(self.request)
-        instance = self.get_object()
-        if (instance.case_status == 2 and instance.audit_status != 1) or instance.publisher != user:
-            raise PermissionDenied
+        instance = get_obj('lost', pk, user)
         instance.view_count += 1
         instance.last_update_by = user
         instance.save()
@@ -103,7 +113,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def match_found(self, request, pk=None):
         COORDINATE_RANGE=0.1  # this is about 11 KM
-        instance = self.get_object()
+        user = get_user(self.request)
+        instance = get_obj('lost', pk, user)
         latitude, longitude = instance.latitude, instance.longitude
         create_time = instance.create_time
         pet_type = instance.pet_type
@@ -139,7 +150,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def create_found(self, request, pk):
         user = get_user(self.request)
-        lost = self.get_object(pk)
+        instance = get_obj('lost', pk, user)
         found = PetFoundSerializer(data=request.data)
         if found.is_valid(raise_exception=True):
             found = found.save(publisher=user, lost=lost)
@@ -153,6 +164,35 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance.case_status = case_status
         instance.save()
         return Response(self.get_serializer(instance).data)
+
+
+# TODO(zlz): test this
+class PetCaseCloseViewSet(viewsets.ModelViewSet):
+    queryset = PetCaseClose.objects
+    serializer_class = PetCaseCloseSerializer
+
+    def create_for_obj(self, request, obj, obj_pk):
+        user = get_user(self.request)
+        instance = get_object(obj, pk)
+        if instance.publisher != user:
+            raise PermissionDenied
+        case_close = PetCaseCloseSerializer(data=request.data)
+        if case_close.is_valid(raise_exception=True):
+            case_close = case_close.save(**{'publisher': user, obj:instance})
+            return Response(PetCaseCloseSerializer(case_close).data)
+
+    def retrieve_by_obj(self, request, obj, obj_pk):
+        user = get_user(self.request)
+        instance = get_object(obj, pk)
+        if instance.publisher != user:
+            raise PermissionDenied
+        return Response(PetCaseCloseSerializer(data=instance).data)
+
+    def retrieve(self, request, pk):
+        instance = self.get_object(pk)
+        if instance.audit_status != 1 and instance.publisher != request.user:
+            raise PermissionDenied
+        return Response(PetCaseCloseSerializer(data=instance).data)
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
@@ -540,14 +580,6 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     queryset = Message.objects
 
-    def get_obj(self, obj, obj_pk):
-        if obj == 'lost':
-            return PetLost.objects.filter(pk=obj_pk).get()
-        elif obj == 'found':
-            return PetFound.objects.filter(pk=obj_pk).get()
-        else:
-            raise Http404
-
     def list(self, request, obj=None, obj_pk=None):
         user = get_user(request)
         if obj == 'lost':
@@ -564,7 +596,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def create(self, request, obj, obj_pk):
         user = get_user(request)
-        ext_arg = {'publisher': user, obj: self.get_obj(obj, obj_pk)}
+        ext_arg = {'publisher': user, obj: get_obj(obj, obj_pk, user)}
         comment = CommentSerializer(data=request.data)
         if comment.is_valid(raise_exception=True):
             comment = comment.save(**ext_arg)
@@ -587,7 +619,6 @@ class MyPostView(views.APIView, LimitOffsetPagination):
         if page is not None:
             serializer = serializer_class(page, many=True)
             return self.get_paginated_response(serializer.data)
-
 
 class TagView(views.APIView):
     def get(self, request):
