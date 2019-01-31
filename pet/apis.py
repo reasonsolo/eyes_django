@@ -1,10 +1,11 @@
 from django.shortcuts import render
 from django.conf import settings
 from django.db.models.query import QuerySet, EmptyQuerySet
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import Http404, HttpResponseForbidden
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
+from rest_framework.settings import api_settings
 
 from rest_framework import viewsets, views, mixins
 from rest_framework.decorators import action
@@ -31,8 +32,20 @@ def get_user(request):
     else:
         raise PermissionDenied
 
+def get_obj(self, obj, obj_pk, user):
+    instance = None
+    if obj == 'lost':
+        instance = PetLost.objects.filter(pk=obj_pk).get()
+    elif obj == 'found':
+        instance = PetFound.objects.filter(pk=obj_pk).get()
+    else:
+        raise Http404
+    if (instance.case_status == 2 and instance.audit_status != 1) or instance.publisher != user:
+        raise PermissionDenied
+    return instance
+
 class PetLostViewSet(viewsets.ModelViewSet):
-    queryset = PetLost.objects.filter(flag=1)
+    queryset = PetLost.objects
     serializer_class = PetLostSerializer
     COORDINATE_RANGE=0.1  # this is about 11 KM
 
@@ -42,14 +55,12 @@ class PetLostViewSet(viewsets.ModelViewSet):
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
         place = request.GET.get('place', None)
-        lost_queryset = PetLost.objects.filter(flag=1)
+        lost_queryset = PetLost.objects.filter(case_status=0, audit_status=1)
         if latitude != None and longitude != None:
             lost_queryset = lost_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                          .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                          .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
                                          .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-        elif place != None:
-            lost_queryset = lost_queryset.filter(place=int(place))
         if pet_type != None:
             lost_queryset.filter(pet_type=int(pet_type))
         if date_range != None:
@@ -59,30 +70,38 @@ class PetLostViewSet(viewsets.ModelViewSet):
         lost_list = lost_queryset.all()
         page = self.paginate_queryset(lost_list)
         if page is not None:
+            ids = [instance.id for instance in page]
+            PetLost.objects.filter(id__in=ids).update(view_count=F('view_count')+1)
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
             return Response([])
 
     def retrieve(self, request, pk=None):
-        instance = self.get_object()
+        user = get_user(self.request)
+        instance = get_obj('lost', pk, user)
         instance.view_count += 1
+        instance.last_update_by = user
         instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
     def perform_update(self, serializer):
-        instance = serializer.save()
         user = get_user(self.request)
-        if user is not None:
-            instance.last_update_by = user
-            instance.save()
+        instance = self.get_object()
+        if instance.publisher != user:
+            raise PermissionDenied
+        if serializer.is_valid(raise_exception=True):
+            instance = serializer.save()
+        instance.last_update_by = user
+        instance.save()
 
     def perform_create(self, serializer):
         instance = serializer.save()
         user = get_user(self.request)
         if user is not None:
             instance.create_by = user
+            instance.last_update_by = user
             instance.save()
 
     def perform_destroy(self, instance):
@@ -94,8 +113,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def match_found(self, request, pk=None):
         COORDINATE_RANGE=0.1  # this is about 11 KM
-        instance = self.get_object()
-        place = instance.place
+        user = get_user(self.request)
+        instance = get_obj('lost', pk, user)
         latitude, longitude = instance.latitude, instance.longitude
         create_time = instance.create_time
         pet_type = instance.pet_type
@@ -103,13 +122,11 @@ class PetLostViewSet(viewsets.ModelViewSet):
         start_time = create_time - timedelta(days=30)
         end_time = create_time + timedelta(days=30)
 
-        queryset = PetFound.objects.filter(flag=1, audit_status=1, case_status=0, pet_type=pet_type)\
+        queryset = PetFound.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
                                    .filter(create_time__gte=start_time)\
                                    .filter(create_time__lte=end_time)
-        queryset = queryset | PetFound.objects.filter(flag=1, lost=instance)
+        queryset = queryset | PetFound.objects.filter(lost=instance)
         place_queryset = PetFound.objects.none()
-        if place is not None:
-            place_queryset = queryset.filter(place=place)
         if latitude is not None and longitude is not None:
             coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
@@ -123,6 +140,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
             found_list = place_queryset.all()
         page = self.paginate_queryset(found_list)
         if page is not None:
+            ids = [instance.id for instance in page]
+            PetFound.objects.filter(id__in=ids).update(view_count=F('view_count')+1)
             serializer = PetFoundSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
@@ -131,7 +150,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def create_found(self, request, pk):
         user = get_user(self.request)
-        lost = self.get_object(pk)
+        instance = get_obj('lost', pk, user)
         found = PetFoundSerializer(data=request.data)
         if found.is_valid(raise_exception=True):
             found = found.save(publisher=user, lost=lost)
@@ -147,8 +166,37 @@ class PetLostViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(instance).data)
 
 
+# TODO(zlz): test this
+class PetCaseCloseViewSet(viewsets.ModelViewSet):
+    queryset = PetCaseClose.objects
+    serializer_class = PetCaseCloseSerializer
+
+    def create_for_obj(self, request, obj, obj_pk):
+        user = get_user(self.request)
+        instance = get_object(obj, pk)
+        if instance.publisher != user:
+            raise PermissionDenied
+        case_close = PetCaseCloseSerializer(data=request.data)
+        if case_close.is_valid(raise_exception=True):
+            case_close = case_close.save(**{'publisher': user, obj:instance})
+            return Response(PetCaseCloseSerializer(case_close).data)
+
+    def retrieve_by_obj(self, request, obj, obj_pk):
+        user = get_user(self.request)
+        instance = get_object(obj, pk)
+        if instance.publisher != user:
+            raise PermissionDenied
+        return Response(PetCaseCloseSerializer(data=instance).data)
+
+    def retrieve(self, request, pk):
+        instance = self.get_object(pk)
+        if instance.audit_status != 1 and instance.publisher != request.user:
+            raise PermissionDenied
+        return Response(PetCaseCloseSerializer(data=instance).data)
+
+
 class MaterialViewSet(viewsets.ModelViewSet):
-    queryset = PetMaterial.objects.filter(flag=1)
+    queryset = PetMaterial.objects
     serializer_class = PetMaterialSerializer
 
     def perform_destroy(self, instance):
@@ -177,9 +225,7 @@ class MaterialUploadView(views.APIView):
         file_obj = request.FILES['file']
         mime = request.META.get('Content-Type', 'image/jpeg')
 
-        user = None
-        if request.user is not None and not request.user.is_anonymous:
-            user = request.user.profile
+        user = get_user(request)
 
         fs = FileSystemStorage()
         filename, ext = self.gen_filename(mime)
@@ -206,17 +252,17 @@ class MaterialUploadView(views.APIView):
 
 
 class SpeciesListView(viewsets.ReadOnlyModelViewSet):
-    queryset = PetSpecies.objects.filter(flag=1)
+    queryset = PetSpecies.objects
     serializer_class = PetSpeciesSerializer
 
     def list(self, request):
-        species_list = PetSpecies.objects.filter(flag=1)
+        species_list = PetSpecies.objects
         serializer = self.get_serializer(species_list, many=True)
         return Response(serializer.data)
 
 class PetFoundViewSet(viewsets.ModelViewSet):
     COORDINATE_RANGE=0.1  # this is about 11 KM
-    queryset = PetFound.objects.filter(flag=1)
+    queryset = PetFound.objects
     serializer_class = PetFoundSerializer
 
     def list(self, request):
@@ -224,15 +270,12 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         longitude = request.GET.get('longitude', None)
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
-        place = request.GET.get('place', None)
-        queryset = PetFound.objects.filter(flag=1)
+        queryset = PetFound.objects.filter(case_status=0, audit_status=1)
         if latitude != None and longitude != None:
             queryset = found_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                      .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
                                      .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-        elif place != None:
-            queryset = queryset.filter(place=int(place))
         if pet_type != None:
             queryset.filter(pet_type=int(pet_type))
         if date_range != None:
@@ -242,6 +285,8 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         found_list = queryset.all()
         page = self.paginate_queryset(found_list)
         if page is not None:
+            ids = [instance.id for instance in page]
+            PetFound.objects.filter(id__in=ids).update(view_count=F(view_count)+1)
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
@@ -277,7 +322,6 @@ class PetFoundViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def match_lost(self, request, pk=None):
         instance = self.get_object(pk)
-        place = instance.place
         latitude, longitude = instance.latitude, instance.longitude
         create_time = instance.create_time
         pet_type = instance.pet_type
@@ -285,13 +329,11 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         start_time = create_time - timedelta(days=30)
         end_time = create_time + timedelta(days=30)
 
-        queryset = PetLost.objects.filter(flag=1, audit_status=1, case_status=0, pet_type=pet_type)\
+        queryset = PetLost.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
                                   .filter(create_time__gte=start_time)\
                                   .filter(create_time__lte=end_time)
-        queryset = queryset | PetLost.objects.filter(flag=1, found=instance)
+        queryset = queryset | PetLost.objects.filter(found=instance)
         place_queryset = PetLost.objects.none()
-        if place is not None:
-            place_queryset = queryset.filter(place=place)
         if latitude is not None and longitude is not None:
             coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
@@ -305,6 +347,9 @@ class PetFoundViewSet(viewsets.ModelViewSet):
             lost_list = place_queryset.all()
         page = self.paginate_queryset(lost_list)
         if page is not None:
+            ids = [instance.id for instance in page]
+            PetLost.objects.filter(id__in=ids).update(view_count=F(view_count)+1)
+            serializer = self.get_serializer(page, many=True)
             serializer = PetLostSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
@@ -408,11 +453,8 @@ class ActionLogAPIView(views.APIView):
     def repost(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
-        user = request.user
-        if user is None or user.is_anonymous or user.profile is None:
-            raise PermissionDenied
-        profile = user.profile
-        repost_log, create = RepostLog.objects.get_or_create(**{'user':profile, obj:instance})
+        user = get_user(request)
+        repost_log, create = RepostLog.objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and repost_log.flag:
                 instance.repost_count -= 1
@@ -430,10 +472,12 @@ class ActionLogAPIView(views.APIView):
 # TimelineTuple = namedtuple('Timeline', ('lost', 'found'))
 class FollowFeedsView(viewsets.ModelViewSet):
     serializer_class = FollowFeedsSerializer
-    queryset = FollowLog.objects.filter(flag=1)
+    queryset = FollowLog.objects
     def list(self, request):
         user = get_user(request)
-        queryset = FollowLog.objects.filter(flag=1, user=user)
+        queryset = FollowLog.objects.filter(user=user)\
+                                    .filter((~Q(lost__case_status=2)&Q(lost__audit_status=1))
+                                             |(~Q(found__case_status=2)&Q(found__audit_status=1)))
 
         follow_list = queryset.all()
         page = self.paginate_queryset(follow_list)
@@ -449,7 +493,7 @@ def get_or_create_thread_by_user(user_a, user_b):
         user_a, user_b = user_b, user_a
     elif user_a.id == user_b.id:
         raise PermissionDenied
-    msg_thread = MessageThread.objects.filter(flag=1, user_a=user_a, user_b=user_b).first()
+    msg_thread = MessageThread.objects.filter(user_a=user_a, user_b=user_b).first()
     if msg_thread is None:
         msg_thread = MessageThread(user_a=user_a, user_b=user_b)
         msg_thread.save()
@@ -458,20 +502,18 @@ def get_or_create_thread_by_user(user_a, user_b):
 
 class MessageThreadViewSet(viewsets.ModelViewSet):
     serializer_class = MessageThreadSerializer
-    queryset = MessageThread.objects.filter(flag=1)
+    queryset = MessageThread.objects
 
     def list(self, request):
         user = get_user(request)
-        queryset = MessageThread.objects.filter(flag=1)\
-                                        .filter(Q(user_a=user)|Q(user_b=user))
+        queryset = MessageThread.objects.filter(Q(user_a=user)|Q(user_b=user))
         thread_list = queryset.all()
         serializer = self.get_serializer(thread_list, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         user = get_user(request)
-        msg_thread = MessageThread.objects.filter(flag=1)\
-                                          .filter(Q(user_a=user)|Q(user_b=user)).first()
+        msg_thread = MessageThread.objects.filter(Q(user_a=user)|Q(user_b=user)).first()
         if msg_thread is None:
             raise Http404
         return Response(self.get_serializer(msg_thread).data)
@@ -498,7 +540,7 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
         user_a = user
         user_b = related_obj.publisher
         msg_thread = get_or_create_thread_by_user(user_a, user_b)
-        messages = Message.objects.filter(flag=1, msg_thread=msg_thread)
+        messages = Message.objects.filter(msg_thread=msg_thread)
         serializer = MessageAndThreadSerializer(msg_thread=msg_thread,
                                                 messages=messages)
         return Response(serializer.data)
@@ -506,12 +548,12 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
-    queryset = Message.objects.filter(flag=1)
+    queryset = Message.objects
 
     def list(self, request, thread_pk=None):
         user = get_user(request)
-        msg_thread = MessageThread.objects.filter(flag=1, pk=thread_pk).get()
-        message_list = Message.objects.filter(flag=1, msg_thread=thread_pk).all()
+        msg_thread = MessageThread.objects.filter(pk=thread_pk).get()
+        message_list = Message.objects.filter(msg_thread=thread_pk).all()
         if user != msg_thread.user_a and user != msg_thread.user_b:
             raise PermissionDenied
         serializer = MessageAndThreadSerializer(messages=message_list, msg_thread=msg_thread)
@@ -519,7 +561,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def create(self, request, thread_pk=None):
         user = get_user(request)
-        message = MessageSerializer(data=request.data, context={'request': request, 'sender': user})
+        message = MessageSerializer(data=request.data, context={'request': request})
         if message.is_valid(raise_exception=True):
             msg_thread = get_or_create_thread_by_user(user, message.validated_data['receiver'])
             if msg_thread is None:
@@ -536,22 +578,14 @@ class MessageViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    queryset = Message.objects.filter(flag=1)
-
-    def get_obj(self, obj, obj_pk):
-        if obj == 'lost':
-            return PetLost.objects.filter(flag=1, pk=obj_pk).get()
-        elif obj == 'found':
-            return PetFound.objects.filter(flag=1, pk=obj_pk).get()
-        else:
-            raise Http404
+    queryset = Message.objects
 
     def list(self, request, obj=None, obj_pk=None):
         user = get_user(request)
         if obj == 'lost':
-            queryset = Comment.objects.filter(flag=1, lost=obj_pk)
+            queryset = Comment.objects.filter(lost=obj_pk, audit_status=1)
         elif obj == 'found':
-            queryset = Comment.objects.filter(flag=1, found=obj_pk)
+            queryset = Comment.objects.filter(found=obj_pk, audit_status=1)
         else:
             raise Http404
 
@@ -562,7 +596,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def create(self, request, obj, obj_pk):
         user = get_user(request)
-        ext_arg = {'publisher': user, obj: self.get_obj(obj, obj_pk)}
+        ext_arg = {'publisher': user, obj: get_obj(obj, obj_pk, user)}
         comment = CommentSerializer(data=request.data)
         if comment.is_valid(raise_exception=True):
             comment = comment.save(**ext_arg)
@@ -580,17 +614,16 @@ class MyPostView(views.APIView, LimitOffsetPagination):
             serializer_class = PetFoundSerializer
         else:
             raise Http404
-        queryset = obj_class.objects.filter(flag=1, publisher=user)
+        queryset = obj_class.objects.filter(publisher=user)
         page = self.paginate_queryset(queryset.all(), request=request)
         if page is not None:
             serializer = serializer_class(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-
 class TagView(views.APIView):
     def get(self, request):
         user = get_user(request)
-        top_tags = Tag.objects.filter(flag=1).order_by('-count')[:5]
+        top_tags = Tag.objects.order_by('-count')[:5]
         user_tags = [tag_usage.tag for tag_usage in user.tag_usage_set.all()]
         serializer = RecommendedTagSerializer({'top_tags': top_tags, 'user_tags':user_tags})
         return Response(serializer.data)

@@ -2,6 +2,7 @@
 from django.db import models
 from django.db.models import Q
 from django.utils.timezone import now
+from django.utils.safestring import mark_safe
 from separatedvaluesfield.models import SeparatedValuesField
 from datetime import datetime
 from wx_auth.models import User
@@ -26,55 +27,51 @@ CASE_STATUS = (
     (2, u'已过期'),
 )
 AUDIT_STATUS = (
-    (0, 'Pending'),
-    (1, 'Passed'),
-    (2, 'Denied'),
+    (0, '待审核'),
+    (1, '已通过'),
+    (2, '已拒绝'),
 )
 CHARGE_STATUS = (
-    (0, 'NotPaid'),
-    (1, 'Failed'),
-    (2, 'Succeeded'),
-    (3, 'Free'),
-)
-CONTACT_TYPE = (
-    (0, 'LostFound'),
-    (1, 'Clue'),
+    (0, '未付款'),
+    (1, '付款失败'),
+    (2, '付款成功'),
+    (3, '免费'),
 )
 CONTACT_STATUS = (
     (0, 'NotContact'),
     (1, 'Contacted'),
 )
 BOOST_KPI_TYPE = (
-    (0, 'NoKpi'),
-    (1, 'ViewAmount'),
+    (0, '无'),
+    (1, '浏览量'),
 )
 MEDICAL_STATUS = (
-	(0, 'None'),
-	(1, 'Sterilized'),
-	(2, 'Vaccinated'),
-	(3, 'Desinsect'),
+	(0, '无'),
+	(1, '已绝育'),
+	(2, '已免疫'),
+	(3, '已除虫'),
 )
 PET_TYPE = (
-    (0, 'Other'),
-    (1, 'Cat'),
-    (2, 'Dog'),
+    (0, '其他'),
+    (1, '猫'),
+    (2, '狗'),
 )
 FOUND_STATUS = (
-    (0, 'NotAtHand'),
-    (1, 'AtHand'),
-    (2, 'InHospital'),
+    (0, '不在身边'),
+    (1, '在身边'),
+    (2, '在医院'),
 )
 MATERIAL_TYPE = (
-    (0, 'Video'),
-    (1, 'Image'),
+    (0, '视频'),
+    (1, '图片'),
 )
 MESSAGE_TYPE = (
-    (0, 'System'),
-    (1, 'Personal'),
+    (0, '系统'),
+    (1, '私信'),
 )
 READ_STATUS = (
-    (0, 'NotRead'),
-    (1, 'Read'),
+    (0, '未读'),
+    (1, '已读'),
 )
 
 # filter out flag=0 by default
@@ -127,6 +124,11 @@ class PetLost(models.Model):
         return '%d:%s@%s-%s' % (self.id, self.publisher.wx_nickname if self.publisher is not None else 'None',
                                 self.place, self.get_case_status_display())
 
+    def show_materials(self):
+        html = ''
+        for material in self.material_set.all():
+            html += '<img src="%s" />' % material.thumb_url
+        return mark_safe(html)
 
 class PetFound(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
@@ -134,7 +136,7 @@ class PetFound(models.Model):
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, default=1)
-    color = models.CharField(max_length=SHORT_CHAR, blank=True, null=True)
+    color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
@@ -167,6 +169,12 @@ class PetFound(models.Model):
     def __str__(self):
         return '%d:%s@%s-%s' % (self.id, self.publisher.wx_nickname if self.publisher is not None else 'None',
                                 self.place, self.get_case_status_display())
+
+    def show_materials(self):
+        html = ''
+        for material in self.material_set.all():
+            html += '<img src="%s" height=100px width=100px/>' % material.thumb_url
+        return mark_safe(html)
 
 
 class Tag(models.Model):
@@ -309,7 +317,7 @@ class PetLostFoundMatch(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_found_match_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_found_match_set')
-    contact_status = models.IntegerField(choices=CONTACT_TYPE, blank=False, null=False)
+    contact_status = models.IntegerField(choices=CONTACT_STATUS, blank=False, null=False, default=0)
     static_score = models.IntegerField(default=None)
     feedback_score = models.IntegerField(default=None)
     create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
@@ -326,8 +334,8 @@ class PetLostFoundMatch(models.Model):
 
 class PetCaseClose(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
-    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_case_close_set')
-    best_found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_case_close_set')
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='case_close_set')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='case_close_set')
     descrption = models.TextField(blank=True, null=True)
     view_count = models.IntegerField(default=0)
     repost_count = models.IntegerField(default=0)
@@ -346,6 +354,7 @@ class PetMaterial(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
+    close = models.ForeignKey('PetCaseClose', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
     mat_type = models.IntegerField(choices=MATERIAL_TYPE, blank=True, null=True)
     mime_type = models.CharField(max_length=20, blank=True, null=True)
     size = models.IntegerField(default=0)
@@ -446,5 +455,4 @@ class RepostLog(models.Model):
 
     class Meta:
         ordering = ['-create_time']
-
 

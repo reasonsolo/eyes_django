@@ -70,6 +70,13 @@ material_detail = MaterialViewSet.as_view({
 	'get': 'retrieve',
 	'delete': 'destroy',
 })
+case_close_obj = PetCaseCloseViewSet.as_view({
+	'get': 'retrieve_by_obj',
+	'post': 'create_for_obj',
+})
+case_close_detail = PetCaseCloseViewSet.as_view({
+	'get': 'retrieve',
+})
 
 #router = DefaultRouter()
 #router.register(r'lost', PetLostViewSet)
@@ -92,6 +99,9 @@ urlpatterns = format_suffix_patterns([
     url(r'^found/(?P<pk>[0-9]+)/$', found_detail, name='found-detail'),
     url(r'^found/match/(?P<pk>[0-9]+)/$', found_match, name='found-match'),
     url(r'^found/status/(?P<pk>[0-9]+)/$', found_status, name='found-status'),
+
+	url(r'^close/(?P<obj>lost|found)/(?P<pk>[0-9]+)/', case_close_obj, name='case-close-obj'),
+	url(r'^close/(?P<pk>[0-9]+)/', case_close_detail, name='case-close-detail'),
 
     url(r'^action/(?P<action>like|repost|follow)/(?P<obj>lost|found)/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view()),
 
