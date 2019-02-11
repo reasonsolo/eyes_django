@@ -32,6 +32,11 @@ def get_user(request):
     else:
         raise PermissionDenied
 
+def get_user_or_none(request):
+    if request.user is not None and not request.user.is_anonymous:
+        return request.user
+    return None
+
 def get_obj(self, obj, obj_pk, user):
     instance = None
     if obj == 'lost':
@@ -78,10 +83,9 @@ class PetLostViewSet(viewsets.ModelViewSet):
             return Response([])
 
     def retrieve(self, request, pk=None):
-        user = get_user(self.request)
+        user = get_user_or_none(self.request)
         instance = get_obj('lost', pk, user)
         instance.view_count += 1
-        instance.last_update_by = user
         instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
@@ -113,7 +117,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def match_found(self, request, pk=None):
         COORDINATE_RANGE=0.1  # this is about 11 KM
-        user = get_user(self.request)
+        user = get_user_or_none(self.request)
         instance = get_obj('lost', pk, user)
         latitude, longitude = instance.latitude, instance.longitude
         create_time = instance.create_time
@@ -182,7 +186,7 @@ class PetCaseCloseViewSet(viewsets.ModelViewSet):
             return Response(PetCaseCloseSerializer(case_close).data)
 
     def retrieve_by_obj(self, request, obj, obj_pk):
-        user = get_user(self.request)
+        user = get_user_or_none(self.request)
         instance = get_object(obj, pk)
         if instance.publisher != user:
             raise PermissionDenied
