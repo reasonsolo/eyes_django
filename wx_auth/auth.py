@@ -31,11 +31,11 @@ def get_openid_by_code(request):
     try:
         session_info = api.exchange_code_for_session_key(code=code)
     except OAuth2AuthExchangeError as e:
-        return False, None, None
+        return False, None, None, None
     session_key = session_info.get('session_key', None)
     openid = session_info.get('openid', None)
     reg_status = is_openid_registered_impl(openid)
-    return True, openid, reg_status
+    return True, openid, reg_status, session_key
 
 def is_openid_registered_impl(openid):
     if openid is None:

@@ -36,6 +36,8 @@
 
    ​     'is_registered':boolean
 
+   ​     'session_key':string
+
       }    #具体返回内容
 
    }
@@ -74,7 +76,7 @@
 
      ‘phone’: string, #用户自己输入电话
 
-     'session_key':string, #optional,  如采用一键注册, login接口返回的session_key
+     'session_key':string, #optional,  如采用一键注册, get_openid_by_code接口返回的session_key
 
      'encrypted_phone': string， #optional, 如采用一键注册，则放入加密的电话号码
 
