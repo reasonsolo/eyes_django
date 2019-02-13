@@ -1,21 +1,73 @@
 from wx_auth.apps import WxAuthConfig
 from wx_auth.models import User
 from django.contrib.auth.hashers import check_password
+from weixin.lib.wxcrypt import WXBizDataCrypt
+from weixin import WXAPPAPI
+from weixin.oauth2 import OAuth2AuthExchangeError
+import json
+import time
+import jwt
+
+def get_phone_by_code(request):
+    appid = WxAuthConfig.WXAPP_ID
+    session_key = request.GET.get('session_key', None)
+    encrypted_data = request.GET.get('encrypted_phone', None) 
+    iv = request.GET.get('iv', None)
+    if session_key is None or encrypted_data is None or iv is None:
+        return None
+    crypt = WXBizDataCrypt(appid, session_key)
+    phone_info = crypt.decrypt(encrypted_data, iv)
+    return phone_info.get('phoneNumber', None)
+
+def is_openid_registered(request):
+    openid = request.GET.get('openid', None)
+    return is_openid_registered_impl(openid)
+
+def get_openid_by_code(request):
+    code = request.GET.get('code', None)
+    appid = WxAuthConfig.WXAPP_ID
+    secret = WxAuthConfig.WXAPP_SECRET
+    api = WXAPPAPI(appid=appid, app_secret=secret)
+    try:
+        session_info = api.exchange_code_for_session_key(code=code)
+    except OAuth2AuthExchangeError as e:
+        return False, None, None
+    session_key = session_info.get('session_key', None)
+    openid = session_info.get('openid', None)
+    reg_status = is_openid_registered_impl(openid)
+    return True, openid, reg_status
+
+def is_openid_registered_impl(openid):
+    if openid is None:
+        return None
+    try:
+        user = User.objects.get(wx_openid=openid)
+    except User.DoesNotExist:
+        return False
+    return user.is_register
 
 def register(request):
-    account, token = get_user_info(request)
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
-    account.phone = body.get('phone', None)
-    if account.phone is None:
-        return False, account, token
-    else:
+    phone = body.get('phone', None)
+    if phone is None:
+        phone = get_phone_by_code(request)
+
+    if phone is not None:
+        account, token = get_user_info(request)
+        account.phone = phone
+        account.is_register = True
+        account.username = body.get('nickname', account.wx_nickname)
+        account.gender = body.get('gender', account.wx_gender)
+        account.birthday = body.get('birthday', None)
         account.save()
         return True, account, token
+    else:
+        return False, None, None
 
 def verify_password(username, password):
     try:
-        user = User.objects.get(username=username).first()
+        user = User.objects.get(username=username)
     except User.DoesNotExist:
         return None
     pwd_valid = check_password(password, user.password)
@@ -23,42 +75,41 @@ def verify_password(username, password):
         return user
     return None
 
-def get_user_by_name(name):
-    return User.get_by_name(name)
-
 def get_user_info(request):
-    authorization = request.headers.get('Authorization')
+    #authorization = request.headers.get('Authorization', None)
+    authorization = request.META.get('HTTP_AUTHORIZATION', None)
     openid = None
     account = None
+    account_id = None
     result = False
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
-    if authorization:
+    if authorization is not None:
         result, account_id = verify_auth(authorization)
     if result == False:
-        openid = verify_wxapp(body['encrypted_data'], body['iv'], body['code'])
+        openid = body.get('openid', None)
     else:
         account = User.objects.get(id=account_id)
 
     if openid:
-        account = User.get_by_wxapp(openid)
-        if not account:
+        try:
+            account = User.objects.get(wx_openid=openid)
+        except User.DoesNotExist:
             # create new account
             account = User.objects.create(wx_openid=openid,
                         wx_nickname=body.get('wx_nickname', None),
+                        username=body.get('username', None),
                         wx_avatar=body.get('wx_avatar', None),
                         wx_gender=body.get('wx_gender', 0),
                         wx_country=body.get('wx_country', None),
                         wx_province=body.get('wx_province', None),
-                        wx_city=body.get('wx_city', None))
+                        wx_city=body.get('wx_city', None),
+                        phone=body.get('phone', None))
             account.save()
     token = create_token(account)
     return account, token
 
 def get_wxapp_userinfo(encrypted_data, iv, code):
-    from weixin.lib.wxcrypt import WXBizDataCrypt
-    from weixin import WXAPPAPI
-    from weixin.oauth2 import OAuth2AuthExchangeError
     appid = WxAuthConfig.WXAPP_ID
     secret = WxAuthConfig.WXAPP_SECRET
     api = WXAPPAPI(appid=appid, app_secret=secret)
@@ -73,11 +124,12 @@ def get_wxapp_userinfo(encrypted_data, iv, code):
 
 def verify_auth(token):
     try:
-        authorization_type, token = authorization.split(' ')
+        authorization_type, token = token.split(' ')
         payload = jwt.decode(token, 'secret',
-                             audience=Config.AUDIENCE,
+                             audience=WxAuthConfig.AUDIENCE,
                              algorithms=['HS256'])
-    except ExpiredSignatureError:
+    except Exception as e:
+        print(e)
         return False, 0
     if payload:
         return True, int(payload["sub"])
@@ -98,4 +150,4 @@ def create_token(account):
         "scopes": ['open']
     }
     token = jwt.encode(payload, 'secret', algorithm='HS256')
-    return {'access_token': token, 'nickname': account.wx_nickname, 'account_id': str(account.id)}
+    return token.decode('ascii')

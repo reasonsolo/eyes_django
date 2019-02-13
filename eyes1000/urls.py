@@ -19,12 +19,13 @@ from django.conf.urls.static import static
 from django.urls import path,include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('auth/', include('rest_auth.urls')),
-    path('pet/', include('pet.urls')),
-    path('wx_auth/', include('wx_auth.urls')),
+    path('miniprog/admin/', admin.site.urls),
+    path('miniprog/auth/', include('rest_auth.urls')),
+    path('miniprog/pet/', include('pet.urls')),
+    path('miniprog/wx_auth/', include('wx_auth.urls')),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
