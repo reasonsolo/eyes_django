@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.conf import settings
 from django.db.models.query import QuerySet, EmptyQuerySet
 from django.db.models import Q, F
-from django.http import Http404, HttpResponseForbidden
+from django.http import Http404, HttpResponseForbidden, HttpResponse
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
