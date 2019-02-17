@@ -5,6 +5,8 @@ from django.db.models import Q, F
 from django.http import Http404, HttpResponseForbidden
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 from rest_framework.settings import api_settings
 
 from rest_framework import viewsets, views, mixins
@@ -26,23 +28,32 @@ mimetypes.init()
 
 # Create your views here.
 
+class Http401(HttpResponse):
+    def __init__(self):
+        super().__init__('需要登录', status=401)
+
+def ResultResponse(data):
+    if not isinstance(data, list):
+        data = [data]
+    return Response({'result': data})
+
 def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
         return request.user
     else:
-        raise PermissionDenied
+        raise Http401
 
 def get_user_or_none(request):
     if request.user is not None and not request.user.is_anonymous:
         return request.user
     return None
 
-def get_obj(self, obj, obj_pk, user):
+def get_obj(obj, obj_pk, user):
     instance = None
     if obj == 'lost':
-        instance = PetLost.objects.filter(pk=obj_pk).get()
+        instance = get_object_or_404(PetLost, pk=obj_pk)
     elif obj == 'found':
-        instance = PetFound.objects.filter(pk=obj_pk).get()
+        instance = get_object_or_404(PetFound, pk=obj_pk)
     else:
         raise Http404
     if (instance.case_status == 2 and instance.audit_status != 1) or instance.publisher != user:
@@ -80,7 +91,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
-            return Response([])
+            return ResultResultResponse([])
 
     def retrieve(self, request, pk=None):
         user = get_user_or_none(self.request)
@@ -88,7 +99,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance.view_count += 1
         instance.save()
         serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
     def perform_update(self, serializer):
         user = get_user(self.request)
@@ -149,7 +160,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
             serializer = PetFoundSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
-            return Response([])
+            return ResultResponse([])
 
     @action(detail=True)
     def create_found(self, request, pk):
@@ -158,7 +169,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         found = PetFoundSerializer(data=request.data)
         if found.is_valid(raise_exception=True):
             found = found.save(publisher=user, lost=lost)
-            return Response(PetFoundSerializer(found).data)
+            return ResultResponse(PetFoundSerializer(found).data)
 
     @action(detail=True)
     def update_case_status(self, request, pk):
@@ -167,7 +178,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance = self.get_object(pk)
         instance.case_status = case_status
         instance.save()
-        return Response(self.get_serializer(instance).data)
+        return ResultResponse(self.get_serializer(instance).data)
 
 
 # TODO(zlz): test this
@@ -183,20 +194,20 @@ class PetCaseCloseViewSet(viewsets.ModelViewSet):
         case_close = PetCaseCloseSerializer(data=request.data)
         if case_close.is_valid(raise_exception=True):
             case_close = case_close.save(**{'publisher': user, obj:instance})
-            return Response(PetCaseCloseSerializer(case_close).data)
+            return ResultResponse(PetCaseCloseSerializer(case_close).data)
 
     def retrieve_by_obj(self, request, obj, obj_pk):
         user = get_user_or_none(self.request)
         instance = get_object(obj, pk)
         if instance.publisher != user:
             raise PermissionDenied
-        return Response(PetCaseCloseSerializer(data=instance).data)
+        return ResultResponse(PetCaseCloseSerializer(data=instance).data)
 
     def retrieve(self, request, pk):
         instance = self.get_object(pk)
         if instance.audit_status != 1 and instance.publisher != request.user:
             raise PermissionDenied
-        return Response(PetCaseCloseSerializer(data=instance).data)
+        return ResultResponse(PetCaseCloseSerializer(data=instance).data)
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
@@ -251,7 +262,7 @@ class MaterialUploadView(views.APIView):
                             create_by=user, last_update_by=user)
         material.save()
         ret = {'id': material.id, 'url': material.url, 'thumbnail_url': material.thumb_url}
-        return Response(ret)
+        return ResultResponse(ret)
 
 
 
@@ -262,7 +273,7 @@ class SpeciesListView(viewsets.ReadOnlyModelViewSet):
     def list(self, request):
         species_list = PetSpecies.objects
         serializer = self.get_serializer(species_list, many=True)
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
 class PetFoundViewSet(viewsets.ModelViewSet):
     COORDINATE_RANGE=0.1  # this is about 11 KM
@@ -294,14 +305,14 @@ class PetFoundViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
-            return Response([])
+            return ResultResponse([])
 
     def retrieve(self, request, pk=None):
         instance = self.get_object(pk)
         instance.view_count += 1
         instance.save()
         serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
     def perform_update(self, serializer):
         instance = serializer.save()
@@ -357,7 +368,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
             serializer = PetLostSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
-            return Response([])
+            return ResultResponse([])
 
     @action(detail=True)
     def create_lost(self, request, pk):
@@ -366,7 +377,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         lost = PetLostSerializer(request.data)
         if lost.is_valid(raise_exception=True):
             lost = lost.save(publisher=user, found=found)
-            return Response(PetLostSerializer(lost).data)
+            return ResultResponse(PetLostSerializer(lost).data)
 
     @action(detail=True)
     def update_case_status(self, request, pk):
@@ -375,7 +386,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         instance = self.get_object(pk)
         instance.case_status = case_status
         instance.save()
-        return Response(self.get_serializer(instance).data)
+        return ResultResponse(self.get_serializer(instance).data)
 
 class ActionLogAPIView(views.APIView):
     obj_mapping = {
@@ -433,7 +444,7 @@ class ActionLogAPIView(views.APIView):
 
         like_log.flag = False if cancel == 1 else True
         like_log.save()
-        return Response({'count': instance.like_count})
+        return ResultResponse({'count': instance.like_count})
 
     def follow(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
@@ -451,7 +462,7 @@ class ActionLogAPIView(views.APIView):
 
         follow_log.flag = False if cancel == 1 else True
         follow_log.save()
-        return Response({'count': instance.follow_count})
+        return ResultResponse({'count': instance.follow_count})
 
 
     def repost(self, request, obj=None, pk=None):
@@ -470,7 +481,7 @@ class ActionLogAPIView(views.APIView):
 
         repost_log.flag = False if cancel == 1 else True
         repost_log.save()
-        return Response({'count': instance.repost_count})
+        return ResultResponse({'count': instance.repost_count})
 
 
 # TimelineTuple = namedtuple('Timeline', ('lost', 'found'))
@@ -489,7 +500,7 @@ class FollowFeedsView(viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         else:
-            return Response([])
+            return ResultResponse([])
 
 
 def get_or_create_thread_by_user(user_a, user_b):
@@ -513,21 +524,21 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
         queryset = MessageThread.objects.filter(Q(user_a=user)|Q(user_b=user))
         thread_list = queryset.all()
         serializer = self.get_serializer(thread_list, many=True)
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
     def retrieve(self, request, pk=None):
         user = get_user(request)
         msg_thread = MessageThread.objects.filter(Q(user_a=user)|Q(user_b=user)).first()
         if msg_thread is None:
             raise Http404
-        return Response(self.get_serializer(msg_thread).data)
+        return ResultResponse(self.get_serializer(msg_thread).data)
 
     def create(self, request):
         user = get_user(request)
         msg_thread = MessageThreadSerializer(data=request.data, context={'request': request})
         if msg_thread.is_valid():
             msg_thread.save()
-        return Response(self.get_serializer(msg_thread).data)
+        return ResultResponse(self.get_serializer(msg_thread).data)
 
     @action(detail=True)
     def relate_thread(self, request, obj, obj_pk):
@@ -547,7 +558,7 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
         messages = Message.objects.filter(msg_thread=msg_thread)
         serializer = MessageAndThreadSerializer(msg_thread=msg_thread,
                                                 messages=messages)
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -561,7 +572,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         if user != msg_thread.user_a and user != msg_thread.user_b:
             raise PermissionDenied
         serializer = MessageAndThreadSerializer(messages=message_list, msg_thread=msg_thread)
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
     def create(self, request, thread_pk=None):
         user = get_user(request)
@@ -573,7 +584,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = message.save(msg_thread=msg_thread)
         msg_thread.last_msg = message
         msg_thread.save()
-        return Response(self.get_serializer(message).data)
+        return ResultResponse(self.get_serializer(message).data)
 
     def perform_destroy(self, instance):
         instance.flag=0
@@ -604,7 +615,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         comment = CommentSerializer(data=request.data)
         if comment.is_valid(raise_exception=True):
             comment = comment.save(**ext_arg)
-            return Response(self.get_serializer(comment).data)
+            return ResultResponse(self.get_serializer(comment).data)
 
 
 class MyPostView(views.APIView, LimitOffsetPagination):
@@ -630,14 +641,14 @@ class TagView(views.APIView):
         top_tags = Tag.objects.order_by('-count')[:5]
         user_tags = [tag_usage.tag for tag_usage in user.pet_tag_usage_set.all()]
         serializer = RecommendedTagSerializer({'top_tags': top_tags, 'user_tags':user_tags})
-        return Response(serializer.data)
+        return ResultResponse(serializer.data)
 
     def post(self, request):
         user = get_user(request)
         tag = TagSerializer(data=request.data)
         tag.is_valid(raise_exception=True)
         tag = tag.save()
-        return Response(TagSerializer(tag).data)
+        return ResultResponse(TagSerializer(tag).data)
 
 
 class BannerViewSet(viewsets.ModelViewSet):
@@ -645,10 +656,13 @@ class BannerViewSet(viewsets.ModelViewSet):
     queryset = Banner.objects
 
     def list(self, request):
-        banners = Banner.objects.filter(start_time__lt=datetime.now(),
-                                        end_time__gt=datetime.now())
+        banner_type = request.GET.get('type', 0)
         num = request.GET.get('num', 5)
+        banners = Banner.objects.filter(start_time__lt=timezone.now(),
+                                        end_time__gt=timezone.now(),
+                                        audit_status=1,
+                                        banner_type__in=[banner_type, 0, 1])  # add default/ad banner
         banners = banners.order_by('?')[:num]
 
-        return Response(self.get_serializer(banners, many=True).data)
+        return ResultResponse(self.get_serializer(banners, many=True).data)
 

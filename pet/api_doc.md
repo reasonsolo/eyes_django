@@ -7,6 +7,8 @@
 ## error handling
 - 正常请求返回200系列code
 - 请求错误返回非200系列code
+  - 401表示需要登录
+  - 403表示当前权限不允许查看当前内容
   - 404表示请求的对象不存在或url错误
   - 500表示出现服务端bug，需要修复
   - 可能包含的错误信息包括`detail`字段
@@ -123,6 +125,6 @@ MessageAndThread 消息和对话，`{'msg_thread': {}, 'messages': [...]}`
   - `POST` 新建tag
 
 ## banner
-字段 `('id', 'img', 'start_time', 'end_time')`
+字段 `('id', 'img', 'start_time', 'end_time', 'banner_type')`，`banner_type`:0-默认，1-广告，2-寻宠，3-寻主
 1. `/pet/banner`
-  - `GET` 返回有效banner列表，b参数`num`指定banner数量，默认5
+  - `GET` 返回有效banner列表，参数`num`指定banner数量，默认5, 参数`type`指定banner类型，会追加0,1两种类型
