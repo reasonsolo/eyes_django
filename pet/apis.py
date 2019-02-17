@@ -5,6 +5,7 @@ from django.db.models import Q, F
 from django.http import Http404, HttpResponseForbidden
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
+from django.utils import timezone
 from rest_framework.settings import api_settings
 
 from rest_framework import viewsets, views, mixins
@@ -645,8 +646,8 @@ class BannerViewSet(viewsets.ModelViewSet):
     queryset = Banner.objects
 
     def list(self, request):
-        banners = Banner.objects.filter(start_time__lt=datetime.now(),
-                                        end_time__gt=datetime.now())
+        banners = Banner.objects.filter(start_time__lt=timezone.now(),
+                                        end_time__gt=timezone.now())
         num = request.GET.get('num', 5)
         banners = banners.order_by('?')[:num]
 
