@@ -3,11 +3,10 @@ from django.contrib.auth import models as auth_models
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.base_user import BaseUserManager
-#from django.contrib.auth.models import User
 # Create your models here.
 
 SHORT_CHAR=5
-MID_CHAR=20
+MID_CHAR=50
 LONG_CHAR=200
 
 FLAG_CHOICE = (
@@ -93,10 +92,10 @@ class User(DictableModel, AbstractBaseUser, PermissionsMixin):
 
     @classmethod
     def get_by_wxapp(cls, openid):
-        account = cls.objects(wx_openid=openid).first()
+        account = cls.objects.get(wx_openid=openid).first()
         return account
 
     @classmethod
     def get_by_name(cls, name):
-        account = cls.objects(username=name).first()
+        account = cls.objects.get(username=name).first()
         return account
