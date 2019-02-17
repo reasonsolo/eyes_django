@@ -25,7 +25,7 @@ mark_as_passed.short_description = u'标记选中为审核通过'
 mark_as_denied.short_description = u'标记选中为审核不通过'
 
 @admin.register(Message, Tag, PetSpecies,
- PetCaseClose, PetMaterial, LikeLog, RepostLog, FollowLog, Banner)
+ PetCaseClose, PetMaterial, LikeLog, RepostLog, FollowLog)
 class PetAdmin(admin.ModelAdmin):
     pass
 
@@ -35,6 +35,13 @@ class AuditAdmin(admin.ModelAdmin):
 @admin.register(Comment)
 class CommentAdmin(AuditAdmin):
     pass
+
+@admin.register(Banner)
+class BannerAdmin(AuditAdmin):
+    list_display = ('name', 'show_image', 'get_audit_status_display', 'get_banner_type_display',
+                 'start_time', 'end_time', 'show_times', 'click_times')
+    def show_image(self, instance):
+        return mark_safe('<div style="width: 200px"><img src=%s style="width:200px"/></div>' % instance.img.url)
 
 @admin.register(PetFound, PetLost)
 class LostFoundAdmin(AuditAdmin):

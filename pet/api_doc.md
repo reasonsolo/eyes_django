@@ -125,6 +125,7 @@ MessageAndThread 消息和对话，`{'msg_thread': {}, 'messages': [...]}`
   - `POST` 新建tag
 
 ## banner
-字段 `('id', 'img', 'start_time', 'end_time', 'banner_type')`，`banner_type`:0-默认，1-广告，2-寻宠，3-寻主
-1. `/pet/banner`
+字段 `('id', 'img', 'start_time', 'end_time', 'banner_type', 'click_url')`，`banner_type`:0-默认，1-广告，2-寻宠，3-寻主
+1. `/pet/banners`
   - `GET` 返回有效banner列表，参数`num`指定banner数量，默认5, 参数`type`指定banner类型，会追加0,1两种类型
+2. `/pet/banner/<pk>` pk为id，banner点击跳转，返回302

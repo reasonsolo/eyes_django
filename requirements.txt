@@ -1,3 +1,5 @@
+django
 django-separatedvaluesfield
 djangorestframework
 django-reset-auth
+python-weixin

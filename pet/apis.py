@@ -6,7 +6,7 @@ from django.http import Http404, HttpResponseForbidden, HttpResponse
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from rest_framework.settings import api_settings
 
 from rest_framework import viewsets, views, mixins
@@ -42,6 +42,15 @@ def get_user(request):
         return request.user
     else:
         raise Http401
+
+def pet_login(func):
+    def wrap(request, *args, **kwargs):
+        if request.user is not None and not request.user.is_anonymous:
+            return func(request, *args, **kwargs)
+        else:
+            raise Http401
+    return wrap
+
 
 def get_user_or_none(request):
     if request.user is not None and not request.user.is_anonymous:
@@ -656,13 +665,22 @@ class BannerViewSet(viewsets.ModelViewSet):
     queryset = Banner.objects
 
     def list(self, request):
-        banner_type = request.GET.get('type', 0)
-        num = request.GET.get('num', 5)
+        banner_type = int(request.GET.get('type', 0))
+        num = int(request.GET.get('num', 5))
         banners = Banner.objects.filter(start_time__lt=timezone.now(),
                                         end_time__gt=timezone.now(),
                                         audit_status=1,
                                         banner_type__in=[banner_type, 0, 1])  # add default/ad banner
         banners = banners.order_by('?')[:num]
-
+        Banner.objects.filter(pk__in=banners).update(show_times=F('show_times')+1)
         return ResultResponse(self.get_serializer(banners, many=True).data)
+
+    @action(detail=True)
+    def click(self, request, pk):
+        banner = get_object_or_404(Banner, pk=pk, audit_status=1)
+        banner.click_times += 1
+        banner.save()
+        return redirect(banner.click_url)
+
+
 
