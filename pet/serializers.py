@@ -255,4 +255,4 @@ class PetCaseCloseSerializer(serializers.ModelSerializer):
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ('id', 'img', 'start_time', 'end_time')
+        fields = ('id', 'img', 'start_time', 'end_time', 'banner_type')

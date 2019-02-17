@@ -74,6 +74,12 @@ READ_STATUS = (
     (0, '未读'),
     (1, '已读'),
 )
+BANNER_TYPE = (
+    (0, '默认'),
+    (1, '广告'),
+    (2, '寻宠'),
+    (3, '寻主'),
+)
 
 # filter out flag=0 by default
 class FlaggedModelManager(models.Manager):
@@ -396,6 +402,8 @@ class Banner(CommonMixin):
     img = models.ImageField(upload_to='banner')
     start_time = models.DateTimeField(default=now)
     end_time = models.DateTimeField(default=banner_expire)
+    banner_type = models.IntegerField(default=0, choices=BANNER_TYPE)
+    audit_status = models.IntegerField(default=0, choices=AUDIT_STATUS)
 
     def __str__(self):
         return self.name
