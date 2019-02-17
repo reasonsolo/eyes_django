@@ -107,9 +107,10 @@ class CommonMixin(models.Model):
 
 class PetLost(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
+    nickname = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
-    lost_date = models.DateField(blank=True, null=True, default=today)
+    lost_time = models.DateTimeField(blank=True, null=True, default=timezone.now)
     birthday = models.DateField(blank=True, null=True)
     gender = models.IntegerField(choices=GENDER_CHOICE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
@@ -120,6 +121,7 @@ class PetLost(CommonMixin):
     latitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
+    reward = models.IntegerField(default=0)
     is_in_boost = models.BooleanField(default=False)
     boost_kpi_type = models.IntegerField(choices=BOOST_KPI_TYPE, default=0)
     boost_amount = models.IntegerField(default=0, help_text='单位分')
@@ -148,10 +150,11 @@ class PetLost(CommonMixin):
             html += '<img src="%s" />' % material.thumb_url
         return mark_safe(html)
 
+
 class PetFound(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
-    found_date = models.DateField(blank=True, null=True, default=today)
+    found_time = models.DateTimeField(blank=True, null=True, default=timezone.now)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
