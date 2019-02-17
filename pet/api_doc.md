@@ -15,12 +15,84 @@
   - 或post数据验证失败时会返回`[{'field': 'messg'}, ...]`, `field`为错误字段名，`msg`为错误内容
 
 
+## 枚举 status & type
+  ```
+FLAG_CHOICE = (
+    (0, '否'),
+    (1, '是'),
+)
+GENDER_CHOICE = (
+    (0, u'未知'),
+    (1, u'男'),
+    (2, u'女'),
+)
+CASE_STATUS = (
+    (0, u'有效'),
+    (1, u'已关闭'),
+    (2, u'已过期'),
+)
+AUDIT_STATUS = (
+    (0, '待审核'),
+    (1, '已通过'),
+    (2, '已拒绝'),
+)
+CHARGE_STATUS = (
+    (0, '未付款'),
+    (1, '付款失败'),
+    (2, '付款成功'),
+    (3, '免费'),
+)
+CONTACT_STATUS = (
+    (0, 'NotContact'),
+    (1, 'Contacted'),
+)
+BOOST_KPI_TYPE = (
+    (0, '无'),
+    (1, '浏览量'),
+)
+MEDICAL_STATUS = (
+	(0, '无'),
+	(1, '已绝育'),
+	(2, '已免疫'),
+	(3, '已除虫'),
+)
+PET_TYPE = (
+    (0, '其他'),
+    (1, '猫'),
+    (2, '狗'),
+)
+FOUND_STATUS = (
+    (0, '不在身边'),
+    (1, '在身边'),
+    (2, '在医院'),
+)
+MATERIAL_TYPE = (
+    (0, '视频'),
+    (1, '图片'),
+)
+MESSAGE_TYPE = (
+    (0, '系统'),
+    (1, '私信'),
+)
+READ_STATUS = (
+    (0, '未读'),
+    (1, '已读'),
+)
+BANNER_TYPE = (
+    (0, '默认'),
+    (1, '广告'),
+    (2, '寻宠'),
+    (3, '寻主'),
+)
+  ```
+
+
 ## lost
 Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
                   'color', 'description', 'materials', 'tags', 'medical_status',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
-                  'case_status', 'audit_status', 'publish_charge_status')
-`
+                  'case_status', 'audit_status', 'publish_charge_status')`
+
 
 1. `/pet/losts/` 
   - `GET` 返回lost列表，时间倒序排列，接受参数
@@ -43,7 +115,7 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
 
 ## found
 Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags',
-                  'description', 'region_id', 'place', 'latitude', 'longitude',
+                  'description', 'latitude', 'longitude',
                   'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'materials')`
 1. `/pet/founds` 同 `/pet/losts`

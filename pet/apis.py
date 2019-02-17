@@ -672,7 +672,7 @@ class BannerViewSet(viewsets.ModelViewSet):
                                         audit_status=1,
                                         banner_type__in=[banner_type, 0, 1])  # add default/ad banner
         banners = banners.order_by('?')[:num]
-        Banner.objects.filter(pk__in=banners).update(show_times=F('show_times')+1)
+        Banner.objects.filter(pk__in=[b.id for b in banners]).update(show_times=F('show_times')+1)
         return ResultResponse(self.get_serializer(banners, many=True).data)
 
     @action(detail=True)

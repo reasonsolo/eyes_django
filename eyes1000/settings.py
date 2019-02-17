@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 
+from eyes1000 import db_settings
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -79,23 +81,7 @@ WSGI_APPLICATION = 'eyes1000.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'naiba_eyes',
-#         'HOST': '127.0.0.1',
-#         'USER': 'dbuser',
-#         'PASSWORD': 'Naibadbuser_060',
-#         'PORT': '3306',
-#     }
-# }
+DATABASES = db_settings.DATABASES
 
 
 AUTHENTICATION_BACKENDS = ['wx_auth.backends.AuthBackend','django.contrib.auth.backends.ModelBackend']
