@@ -8,11 +8,12 @@
 
      'code': int,   # code为0是代表成功，其他值代表失败
 
-     'message': string, #错误消息
+     'detail': string, #错误消息
 
-     'data': {}    #具体返回内容
+     'results': []    #具体返回内容
 
    }
+   执行成功返回HTTP status code 200，错误返回403。服务端bug返回500
 
    ​
 
@@ -28,9 +29,9 @@
 
      'code': int,   # code为0是代表成功，其他值代表失败
 
-     'message': string, #错误消息
+     'detail': string, #错误消息
 
-     'data': {
+     'results': [{
 
    ​     ‘openid’: string,
 
@@ -38,7 +39,7 @@
 
    ​     'session_key':string
 
-      }    #具体返回内容
+      }]    #具体返回内容
 
    }
 
@@ -54,13 +55,13 @@
 
      'code': int,   # code为0是代表成功，其他值代表失败
 
-     'message': string, #错误消息
+     'detail': string, #错误消息
 
-     'data': {
+     'results': [{
 
    ​     'is_registered':boolean
 
-      }    #具体返回内容
+      }]    #具体返回内容
 
    }
 
@@ -98,15 +99,15 @@
 
 ​          'code': int,   # code为0是代表成功，其他值代表失败
 
-​          'message': string, #错误消息
+​          'detail': string, #错误消息
 
-​          'data': {
+​          'results': [{
 
 ​             'account':{} #用户账户信息，具体字段参见https://github.com/reasonsolo/eyes_django/blob/master/wx_auth/models.py 中user class
 
 ​             'token': #用户登录凭证，后继请求中http header中'Authorization'字段设置为'jwt ' + token
 
-​          }    #具体返回内容
+​          }]    #具体返回内容
 
 ​      }
 
@@ -148,14 +149,14 @@
 
 ​          'code': int,   # code为0是代表成功，其他值代表失败
 
-​          'message': string, #错误消息
+​          'detail': string, #错误消息
 
-​          'data': {
+​          'results': [{
 
 ​             'account':{} #用户账户信息，具体字段参见https://github.com/reasonsolo/eyes_django/blob/master/wx_auth/models.py 中user class
 
 ​             'token': #用户登录凭证，后继请求中http header中'Authorization'字段设置为'jwt ' + token
 
-​          }    #具体返回内容
+​          }]    #具体返回内容
 
 ​      }

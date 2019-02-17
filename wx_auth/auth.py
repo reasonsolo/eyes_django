@@ -9,14 +9,21 @@ import time
 import jwt
 
 def get_phone_by_code(request):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
     appid = WxAuthConfig.WXAPP_ID
-    session_key = request.GET.get('session_key', None)
-    encrypted_data = request.GET.get('encrypted_phone', None) 
-    iv = request.GET.get('iv', None)
+    session_key = body.get('session_key', None)
+    encrypted_data = body.get('encrypted_phone', None) 
+    iv = body.get('iv', None)
     if session_key is None or encrypted_data is None or iv is None:
         return None
     crypt = WXBizDataCrypt(appid, session_key)
-    phone_info = crypt.decrypt(encrypted_data, iv)
+    try:
+        phone_info = crypt.decrypt(encrypted_data, iv)
+        print(phone_info)
+    except Exception as e:
+        print(e)
+        return None
     return phone_info.get('phoneNumber', None)
 
 def is_openid_registered(request):
@@ -31,6 +38,7 @@ def get_openid_by_code(request):
     try:
         session_info = api.exchange_code_for_session_key(code=code)
     except OAuth2AuthExchangeError as e:
+        print(e)
         return False, None, None, None
     session_key = session_info.get('session_key', None)
     openid = session_info.get('openid', None)
@@ -59,7 +67,9 @@ def register(request):
         account.is_register = True
         account.username = body.get('nickname', account.wx_nickname)
         account.gender = body.get('gender', account.wx_gender)
-        account.birthday = body.get('birthday', None)
+        birthday = body.get('birthday', None)
+        if len(birthday) == 10:
+            account.birthday = birthday
         account.save()
         return True, account, token
     else:

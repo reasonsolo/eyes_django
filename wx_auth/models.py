@@ -6,7 +6,7 @@ from django.contrib.auth.base_user import BaseUserManager
 # Create your models here.
 
 SHORT_CHAR=5
-MID_CHAR=20
+MID_CHAR=50
 LONG_CHAR=200
 
 FLAG_CHOICE = (
