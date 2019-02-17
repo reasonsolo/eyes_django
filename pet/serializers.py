@@ -252,3 +252,7 @@ class PetCaseCloseSerializer(serializers.ModelSerializer):
         fields = ('id', 'lost', 'found', 'description', 'materials')
 
 
+class BannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Banner
+        fields = ('id', 'img', 'start_time', 'end_time')

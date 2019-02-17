@@ -1,6 +1,7 @@
 # encoding: utf-8
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.safestring import mark_safe
 from separatedvaluesfield.models import SeparatedValuesField
@@ -80,8 +81,23 @@ class FlaggedModelManager(models.Manager):
         return super(FlaggedModelManager, self).get_queryset().filter(flag=1)
 
 
-class PetLost(models.Model):
+class CommonMixin(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
+                                  related_name='created_%(app_label)s_%(class)s_set')
+    create_time = models.DateTimeField(default=now)
+    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
+                                       related_name='updated_%(app_label)s_%(class)s_set')
+    last_update_time = models.DateTimeField(default=now)
+
+    objects = FlaggedModelManager()
+
+    class Meta:
+        abstract = True
+        ordering = ['-create_time']
+
+
+class PetLost(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
@@ -108,14 +124,7 @@ class PetLost(models.Model):
     tags = models.ManyToManyField('Tag', blank=True)
     medical_status = SeparatedValuesField(max_length=MID_CHAR,choices=MEDICAL_STATUS,\
                                           blank=True, null=True)
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_pet_lost_set')
-    create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
-                                       related_name='updated_pet_lost_set')
-    last_update_time = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
 
     class Meta:
         ordering = ['-create_time']
@@ -130,8 +139,7 @@ class PetLost(models.Model):
             html += '<img src="%s" />' % material.thumb_url
         return mark_safe(html)
 
-class PetFound(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetFound(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
@@ -155,14 +163,6 @@ class PetFound(models.Model):
 
     tags = models.ManyToManyField('Tag', blank=True)
 
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_pet_found_set')
-    create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
-                                       related_name='updated_pet_found_set')
-    last_update_time = models.DateTimeField(default=now)
-
-    objects = FlaggedModelManager()
     class Meta:
         ordering = ['-create_time']
 
@@ -177,32 +177,24 @@ class PetFound(models.Model):
         return mark_safe(html)
 
 
-class Tag(models.Model):
+class Tag(CommonMixin):
     id = models.AutoField(primary_key=True)
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     name = models.CharField(max_length=MID_CHAR, unique=True, db_index=True)
     count = models.IntegerField(default=0)
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_lost_found_tag_set')
-    create_time = models.DateTimeField(default=now)
-
-    objects = FlaggedModelManager()
 
     class Meta:
         ordering = ['count']
 
-
     def __str__(self):
         return self.name
 
-class TagUsage(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+
+class TagUsage(CommonMixin):
     tag = models.ForeignKey('Tag', on_delete=models.SET_NULL, blank=True, null=True, related_name='tag_usage_set')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='tag_usage_set')
     count = models.IntegerField(default=0)
     last_usage = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
     class Meta:
         ordering = ['-count', '-last_usage']
 
@@ -214,22 +206,14 @@ class TagUsage(models.Model):
         return super(TagUsage, self).save(*args, **kwargs)
 
 
-class Comment(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class Comment(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='published_comment_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, blank=True, related_name='comment_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, blank=True, related_name='comment_set')
     content = models.TextField()
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
     reply_to = models.ForeignKey('Comment', on_delete=models.SET_NULL, null=True, blank=True, related_name='reply_set')
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_comment_set')
-    create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
-                                       related_name='updated_comment_set')
-    last_update_time = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
     class Meta:
         ordering = ['create_time']
 
@@ -239,8 +223,7 @@ class Comment(models.Model):
                              str(self.create_time))
 
 
-class Message(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class Message(CommonMixin):
     receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='received_message_set')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_message_set')
     content = models.TextField(default='')
@@ -248,11 +231,6 @@ class Message(models.Model):
     read_status = models.CharField(max_length=SHORT_CHAR, choices=READ_STATUS, default=0)
     msg_thread = models.ForeignKey('MessageThread', on_delete=models.SET_NULL, null=True, blank=True, related_name='message_set')
 
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_message_set')
-    create_time = models.DateTimeField(default=now)
-
-    objects = FlaggedModelManager()
     class Meta:
         ordering = ['create_time']
 
@@ -260,15 +238,12 @@ class Message(models.Model):
         return '%d:%s->%s@%s' (self.id, self.sender.wx_nickname, self.receiver.wx_nickname, str(self.create_time))
 
 
-class MessageThread(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class MessageThread(CommonMixin):
     message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
     user_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='message_as_a_set')
     user_b = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='message_as_b_set')
     last_msg = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True)
-    create_time = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
     def save(self, *args, **kwargs):
         thread = MessageThread.objects.filter((Q(user_a=self.user_a)&Q(user_b=self.user_b))\
                                               |(Q(user_a=self.user_b)&Q(user_b=self.user_a))).first()
@@ -284,13 +259,11 @@ class MessageThread(models.Model):
         unique_together = ('user_a', 'user_b')
 
 
-class MessageRelation(models.Model):
+class MessageRelation(CommonMixin):
     msg_thread = models.ForeignKey(MessageThread, on_delete=models.SET_NULL, null=True)
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, related_name='msg_relation_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, related_name='msg_relation_set')
-    create_time = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
     def save(self,  *args, **kwargs):
         relation = MessageRelation.objects.filter(msg_thread=self.msg_thread, lost=self.lost, found=self.found).first()
         if relation is not None:
@@ -303,37 +276,27 @@ class MessageRelation(models.Model):
         unique_together = ('msg_thread', 'lost', 'found')
 
 
-class PetSpecies(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetSpecies(CommonMixin):
     pet_type = models.IntegerField(choices=PET_TYPE, default=0)
     name = models.CharField(max_length=MID_CHAR, blank=True, null=True)
 
-    objects = FlaggedModelManager()
     def __str__(self):
         return '%d:%s' % (self.id, self.name)
 
 
-class PetLostFoundMatch(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetLostFoundMatch(CommonMixin):
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_found_match_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='lost_found_match_set')
     contact_status = models.IntegerField(choices=CONTACT_STATUS, blank=False, null=False, default=0)
     static_score = models.IntegerField(default=None)
     feedback_score = models.IntegerField(default=None)
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_match_set')
-    create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
-                                       related_name='updated_match_set')
-    last_update_time = models.DateTimeField(default=now)
 
     objects = FlaggedModelManager()
     def __str___(self):
         return '%d:%d-%d' % (self.id, self.lost.id, self.found.id)
 
 
-class PetCaseClose(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetCaseClose(CommonMixin):
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=False, null=True, related_name='case_close_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=False, null=True, related_name='case_close_set')
     descrption = models.TextField(blank=True, null=True)
@@ -342,16 +305,9 @@ class PetCaseClose(models.Model):
     like_count = models.IntegerField(default=0)
     reward_charge_status = models.IntegerField(choices=CHARGE_STATUS, default=0)
     reward_charge_amount = models.IntegerField(default=0, help_text='单位分')
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_case_close_set')
-    create_time = models.DateTimeField(default=now)
-    last_update_by = models.ForeignKey(User,on_delete=models.SET_NULL, blank=True, null=True,\
-                                       related_name='updated_case_close_set')
-    last_update_time = models.DateTimeField(default=now)
 
 
-class PetMaterial(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetMaterial(CommonMixin):
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
     close = models.ForeignKey('PetCaseClose', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
@@ -362,14 +318,9 @@ class PetMaterial(models.Model):
     url = models.URLField(max_length=LONG_CHAR, blank=True, null=True)
     thumb_url = models.URLField(max_length=LONG_CHAR, blank=True, null=True)
     full_path = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
-                                  related_name='created_material_set')
-    create_time = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
 
-class PetLostInteractHourly(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetLostInteractHourly(CommonMixin):
     date_id = models.IntegerField(default=None)
     hour_id = models.IntegerField(default=None)
     repost_count = models.IntegerField(default=0)
@@ -379,31 +330,22 @@ class PetLostInteractHourly(models.Model):
     valid_uv = models.IntegerField(default=0)
     boost_uv = models.IntegerField(default=0)
     boost_amount = models.IntegerField(default=0, help_text='单位分')
-    create_time = models.DateTimeField(default=now)
-    last_update_time = models.DateTimeField(default=now)
 
 
-class PetFoundInteractHourly(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class PetFoundInteractHourly(CommonMixin):
     date_id = models.IntegerField(default=None)
     hour_id = models.IntegerField(default=None)
     repost_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
     pv = models.IntegerField(default=0)
     uv = models.IntegerField(default=0)
-    create_time = models.DateTimeField(default=now)
-    last_update_time = models.DateTimeField(default=now)
-
-    objects = FlaggedModelManager()
 
 
-class FollowLog(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class FollowLog(CommonMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     updated = models.CharField(max_length=SHORT_CHAR, choices=FLAG_CHOICE)
-    create_time = models.DateTimeField(default=now)
     obj_time = models.DateTimeField(blank=True, null=True)
 
     objects = FlaggedModelManager()
@@ -419,40 +361,43 @@ class FollowLog(models.Model):
         ordering = ['-obj_time', '-create_time']
 
 
-class LikeLog(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class LikeLog(CommonMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='like_set')
-    create_time = models.DateTimeField(default=now)
 
-    objects = FlaggedModelManager()
     class Meta:
         ordering = ['-create_time']
 
-class BoostLog(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class BoostLog(CommonMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='boost_set')
     count = models.IntegerField(default=1)
-    create_time = models.DateTimeField(default=now)
-
-    objects = FlaggedModelManager()
 
     class Meta:
         ordering = ['-create_time']
 
 
-class RepostLog(models.Model):
-    flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
+class RepostLog(CommonMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='repost_set')
-    create_time = models.DateTimeField(default=now)
-
-    objects = FlaggedModelManager()
 
     class Meta:
         ordering = ['-create_time']
+
+
+def banner_expire():
+    return timezone.now() + timezone.timedelta(weeks=10*52)
+
+class Banner(CommonMixin):
+    name = models.CharField(max_length=MID_CHAR)
+    img = models.ImageField(upload_to='banner')
+    start_time = models.DateTimeField(default=now)
+    end_time = models.DateTimeField(default=banner_expire)
+
+    def __str__(self):
+        return self.name
+
 
