@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.conf import settings
 from django.db.models.query import QuerySet, EmptyQuerySet
 from django.db.models import Q, F
-from django.http import Http404, HttpResponseForbidden
+from django.http import Http404, HttpResponseForbidden, HttpResponse
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
@@ -35,7 +35,7 @@ class Http401(HttpResponse):
 def ResultResponse(data):
     if not isinstance(data, list):
         data = [data]
-    return Response({'result': data})
+    return Response({'results': data})
 
 def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
