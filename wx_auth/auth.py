@@ -71,6 +71,7 @@ def register(request):
         if len(birthday) == 10:
             account.birthday = birthday
         account.save()
+        account.is_register = True
         return True, account, token
     else:
         return False, None, None
