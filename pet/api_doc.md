@@ -14,6 +14,11 @@
   - 可能包含的错误信息包括`detail`字段
   - 或post数据验证失败时会返回`[{'field': 'messg'}, ...]`, `field`为错误字段名，`msg`为错误内容
 
+## 时间
+默认时间格式化方式为iso-8601
+ - `*_time` 为datetime字符串 ，e.g. 北京时间`2019-02-17T15:50:00+08:00`
+ - `*_date` 为date字符串，e.g. `2019-02-17`
+
 
 ## 枚举 status & type
   ```
@@ -88,10 +93,12 @@ BANNER_TYPE = (
 
 
 ## lost
-Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
-                  'color', 'description', 'materials', 'tags', 'medical_status',
+Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender', 'lost_time', 'place',
+                  'color', 'description', 'materials', 'tags', 'medical_status', 'reward',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')`
+`pet_type` 猫/狗/其他
+`species` 品种
 
 
 1. `/pet/losts/` 
@@ -99,9 +106,9 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
     - `pet_type` 
     - `longitude`， 坐标小数，搜索范围0.1, 约22KM正方形范围
     - `latitude` 和`longitude`同时使用
-    - `place` 和 `longitude`/`latitude` 取并集
     - `date_range` 发布天数，和地点取交集
   - `POST` 新建lost对象, tags字段可以直接使用自定义字符串列表，会自动创建新tag或复用已存在tag
+          `materials` 为素材id，先通过material 接口上传素材，获取id后再创建对象
 
 2. `/pet/lost/<id>` 
   - `GET` 返回lost对象
@@ -114,7 +121,7 @@ Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
   - `GET` 修改lost状态，参数`case_status`, 0-有效，1-已结案，2-已关闭，返回对象
 
 ## found
-Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags',
+Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'place', 'found_time'
                   'description', 'latitude', 'longitude',
                   'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'materials')`
