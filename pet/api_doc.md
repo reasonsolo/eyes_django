@@ -122,4 +122,7 @@ MessageAndThread 消息和对话，`{'msg_thread': {}, 'messages': [...]}`
   - `GET` 返回tag列表，包含`top_tag`和 `user_tag` 2个列表， 2者可能存在重复
   - `POST` 新建tag
 
-
+## banner
+字段 `('id', 'img', 'start_time', 'end_time')`
+1. `/pet/banner`
+  - `GET` 返回有效banner列表，b参数`num`指定banner数量，默认5

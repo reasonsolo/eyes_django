@@ -231,7 +231,7 @@ class MaterialUploadView(views.APIView):
 
         user = get_user(request)
 
-        fs = FileSystemStorage()
+        fs = FileSystemStorage(location=os.path.join(MEDIA_ROOT, 'material'))
         filename, ext = self.gen_filename(mime)
         filepath = fs.save(filename, file_obj)
         uploaded_url = fs.url(filepath)
@@ -628,7 +628,7 @@ class TagView(views.APIView):
     def get(self, request):
         user = get_user(request)
         top_tags = Tag.objects.order_by('-count')[:5]
-        user_tags = [tag_usage.tag for tag_usage in user.tag_usage_set.all()]
+        user_tags = [tag_usage.tag for tag_usage in user.pet_tag_usage_set.all()]
         serializer = RecommendedTagSerializer({'top_tags': top_tags, 'user_tags':user_tags})
         return Response(serializer.data)
 
@@ -640,4 +640,15 @@ class TagView(views.APIView):
         return Response(TagSerializer(tag).data)
 
 
+class BannerViewSet(viewsets.ModelViewSet):
+    serializer_class = BannerSerializer
+    queryset = Banner.objects
+
+    def list(self, request):
+        banners = Banner.objects.filter(start_time__lt=datetime.now(),
+                                        end_time__gt=datetime.now())
+        num = request.GET.get('num', 5)
+        banners = banners.order_by('?')[:num]
+
+        return Response(self.get_serializer(banners, many=True).data)
 

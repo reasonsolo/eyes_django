@@ -77,6 +77,7 @@ case_close_obj = PetCaseCloseViewSet.as_view({
 case_close_detail = PetCaseCloseViewSet.as_view({
 	'get': 'retrieve',
 })
+banner_list = BannerViewSet.as_view({'get': 'list'})
 
 #router = DefaultRouter()
 #router.register(r'lost', PetLostViewSet)
@@ -115,4 +116,6 @@ urlpatterns = format_suffix_patterns([
 	url(r'^comment/(?P<obj>lost|found)/(?P<obj_pk>[0-9]+)/$', comment_list, name='comment-list'),
 
 	url(r'^tag/$', TagView.as_view(), name='tag-list'),
+
+	url(r'^banner/$', banner_list, name='banner-list'),
 ])
