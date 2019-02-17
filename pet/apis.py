@@ -35,7 +35,7 @@ class Http401(HttpResponse):
 def ResultResponse(data):
     if not isinstance(data, list):
         data = [data]
-    return Response({'result': data})
+    return Response({'results': data})
 
 def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
