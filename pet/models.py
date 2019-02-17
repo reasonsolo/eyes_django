@@ -405,6 +405,10 @@ class Banner(CommonMixin):
     banner_type = models.IntegerField(default=0, choices=BANNER_TYPE)
     audit_status = models.IntegerField(default=0, choices=AUDIT_STATUS)
 
+    click_url = models.URLField(null=True, blank=True)
+    show_times = models.IntegerField(default=0)
+    click_times = models.IntegerField(default=0)
+
     def __str__(self):
         return self.name
 
