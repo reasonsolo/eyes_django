@@ -28,6 +28,10 @@ mimetypes.init()
 
 # Create your views here.
 
+class Http401(HttpResponse):
+    def __init__(self):
+        super().__init__('需要登录', status=401)
+
 def ResultResponse(data):
     if not isinstance(data, list):
         data = [data]
@@ -37,7 +41,7 @@ def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
         return request.user
     else:
-        raise PermissionDenied
+        raise Http401
 
 def get_user_or_none(request):
     if request.user is not None and not request.user.is_anonymous:
