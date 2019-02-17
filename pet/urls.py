@@ -78,7 +78,7 @@ case_close_detail = PetCaseCloseViewSet.as_view({
 	'get': 'retrieve',
 })
 banner_list = BannerViewSet.as_view({'get': 'list'})
-banner_redirect = BannerViewSet.as_view({'get': 'redirect'})
+banner_click = BannerViewSet.as_view({'get': 'click'})
 
 #router = DefaultRouter()
 #router.register(r'lost', PetLostViewSet)
@@ -119,5 +119,5 @@ urlpatterns = format_suffix_patterns([
 	url(r'^tag/$', TagView.as_view(), name='tag-list'),
 
 	url(r'^banners/$', banner_list, name='banner-list'),
-	url(r'^banner/(?P<pk>[0-9]+)$', banner_redirect, name='banner-redirect'),
+	url(r'^banner/(?P<pk>[0-9]+)$', banner_click, name='banner-click'),
 ])

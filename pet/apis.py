@@ -676,7 +676,7 @@ class BannerViewSet(viewsets.ModelViewSet):
         return ResultResponse(self.get_serializer(banners, many=True).data)
 
     @action(detail=True)
-    def redirect(self, request, pk):
+    def click(self, request, pk):
         banner = get_object_or_404(Banner, pk=pk, audit_status=1)
         banner.click_times += 1
         banner.save()
