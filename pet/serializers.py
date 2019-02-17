@@ -88,7 +88,7 @@ class PetLostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetLost
-        fields = ('id', 'publisher', 'species', 'pet_type', 'gender',
+        fields = ('id', 'publisher', 'species', 'pet_type', 'gender', 'birthday',
                   'color', 'description', 'materials', 'tags', 'medical_status',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')
