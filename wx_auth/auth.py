@@ -20,7 +20,6 @@ def get_phone_by_code(request):
     crypt = WXBizDataCrypt(appid, session_key)
     try:
         phone_info = crypt.decrypt(encrypted_data, iv)
-        print(phone_info)
     except Exception as e:
         print(e)
         return None
@@ -71,7 +70,6 @@ def register(request):
         if len(birthday) == 10:
             account.birthday = birthday
         account.save()
-        account.is_register = True
         return True, account, token
     else:
         return False, None, None

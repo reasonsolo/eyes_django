@@ -7,6 +7,10 @@ import json
 
 # Create your views here.
 class RetData():
+    def __init__(self):
+        self.code = 0
+        self.message = '成功'
+        self.data = {}
     def to_json(self):
         d= {}
         d['code'] = self.code
@@ -15,9 +19,6 @@ class RetData():
         if len(self.data) > 0:
             d['results'].append(self.data)
         return json.dumps(d)
-    code = 0
-    message = '成功'
-    data = {}
 
 @csrf_exempt
 def login(request):
