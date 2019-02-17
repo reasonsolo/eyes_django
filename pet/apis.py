@@ -140,15 +140,15 @@ class PetLostViewSet(viewsets.ModelViewSet):
         user = get_user_or_none(self.request)
         instance = get_obj('lost', pk, user)
         latitude, longitude = instance.latitude, instance.longitude
-        create_time = instance.create_time
+        lost_date = instance.lost_date
         pet_type = instance.pet_type
 
-        start_time = create_time - timedelta(days=30)
-        end_time = create_time + timedelta(days=30)
+        start_time = lost_date - timedelta(days=30)
+        end_time = lost_date + timedelta(days=30)
 
         queryset = PetFound.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
-                                   .filter(create_time__gte=start_time)\
-                                   .filter(create_time__lte=end_time)
+                                   .filter(found_date__gte=start_time)\
+                                   .filter(found_date__lte=end_time)
         queryset = queryset | PetFound.objects.filter(lost=instance)
         place_queryset = PetFound.objects.none()
         if latitude is not None and longitude is not None:
@@ -347,15 +347,15 @@ class PetFoundViewSet(viewsets.ModelViewSet):
     def match_lost(self, request, pk=None):
         instance = self.get_object(pk)
         latitude, longitude = instance.latitude, instance.longitude
-        create_time = instance.create_time
+        found_date = instance.found_date
         pet_type = instance.pet_type
 
-        start_time = create_time - timedelta(days=30)
-        end_time = create_time + timedelta(days=30)
+        start_date = found_date - timedelta(days=30)
+        end_date = found_date + timedelta(days=30)
 
         queryset = PetLost.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
-                                  .filter(create_time__gte=start_time)\
-                                  .filter(create_time__lte=end_time)
+                                  .filter(lost_date__gte=start_date)\
+                                  .filter(lost_date__lte=end_date)
         queryset = queryset | PetLost.objects.filter(found=instance)
         place_queryset = PetLost.objects.none()
         if latitude is not None and longitude is not None:

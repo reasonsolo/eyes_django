@@ -88,8 +88,8 @@ class PetLostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetLost
-        fields = ('id', 'publisher', 'species', 'pet_type', 'gender', 'birthday',
-                  'color', 'description', 'materials', 'tags', 'medical_status',
+        fields = ('id', 'publisher', 'species', 'pet_type', 'gender', 'birthday', 'lost_date',
+                  'color', 'description', 'materials', 'tags', 'medical_status', 'place',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')
         read_only_fields = ('view_count', 'repost_count', 'like_count',
@@ -158,8 +158,8 @@ class PetFoundSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetFound
-        fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags',
-                  'description', 'region_id', 'place', 'latitude', 'longitude',
+        fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_date',
+                  'description', 'place', 'latitude', 'longitude',
                   'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'materials')
         read_only_fields = ('view_count', 'repost_count', 'like_count',

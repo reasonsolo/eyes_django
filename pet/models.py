@@ -7,7 +7,6 @@ from django.utils.safestring import mark_safe
 from separatedvaluesfield.models import SeparatedValuesField
 from datetime import datetime
 from wx_auth.models import User
-from datetime import datetime
 
 SHORT_CHAR=5
 MID_CHAR=20
@@ -81,6 +80,9 @@ BANNER_TYPE = (
     (3, '寻主'),
 )
 
+def today():
+    return timezone.now().date()
+
 # filter out flag=0 by default
 class FlaggedModelManager(models.Manager):
     def get_queryset(self):
@@ -107,6 +109,7 @@ class PetLost(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
+    lost_date = models.DateField(blank=True, null=True, default=today)
     birthday = models.DateField(blank=True, null=True)
     gender = models.IntegerField(choices=GENDER_CHOICE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
@@ -148,6 +151,7 @@ class PetLost(CommonMixin):
 class PetFound(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
+    found_date = models.DateField(blank=True, null=True, default=today)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
