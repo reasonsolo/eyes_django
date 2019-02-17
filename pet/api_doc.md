@@ -14,6 +14,11 @@
   - 可能包含的错误信息包括`detail`字段
   - 或post数据验证失败时会返回`[{'field': 'messg'}, ...]`, `field`为错误字段名，`msg`为错误内容
 
+## 时间
+默认时间格式化方式为iso-8601
+ - `*_date` 为date字符串 ，e.g. 北京时间`2019-02-17T15:50:00+08:00`
+ - `*_time` 为datetime字符串，e.g. `2019-02-17`
+
 
 ## 枚举 status & type
   ```
@@ -88,7 +93,7 @@ BANNER_TYPE = (
 
 
 ## lost
-Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender',
+Lost对象字段 `('id', 'publisher', 'species', 'pet_type', 'gender', 'lost_date'
                   'color', 'description', 'materials', 'tags', 'medical_status',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')`
