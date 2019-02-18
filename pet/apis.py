@@ -29,9 +29,6 @@ mimetypes.init()
 
 # Create your views here.
 
-class Http401(APIException):
-    def __init__(self):
-        super().__init__(details='需要登录', code=401)
 
 def ResultResponse(data):
     if not isinstance(data, list):
@@ -40,9 +37,8 @@ def ResultResponse(data):
 
 def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
-        print(request.user)
         return request.user
-    raise Http401
+    raise APIException(detail='用户未登录', code=401)
 
 def get_user_or_none(request):
     if request.user is not None and not request.user.is_anonymous:
