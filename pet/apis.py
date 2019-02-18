@@ -224,12 +224,8 @@ class MaterialViewSet(viewsets.ModelViewSet):
             raise Http404
 
 
-class ImageUploadParser(FileUploadParser):
-    media_type = 'image/*'
-
-
 class MaterialUploadView(views.APIView):
-    parser_classes = (ImageUploadParser,)
+    parser_classes = (MultiPartParser,)
 
     def gen_filename(self, mime):
         ext = mimetypes.guess_extension(mime)
