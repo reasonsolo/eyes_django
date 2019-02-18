@@ -11,6 +11,7 @@ from rest_framework.settings import api_settings
 
 from rest_framework import viewsets, views, mixins
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser
 from rest_framework.pagination import LimitOffsetPagination
@@ -28,9 +29,9 @@ mimetypes.init()
 
 # Create your views here.
 
-class Http401(HttpResponse):
+class Http401(APIException):
     def __init__(self):
-        super().__init__('需要登录', status=401)
+        super().__init__(details='需要登录', code=401)
 
 def ResultResponse(data):
     if not isinstance(data, list):
@@ -39,18 +40,9 @@ def ResultResponse(data):
 
 def get_user(request):
     if request.user is not None and not request.user.is_anonymous:
+        print(request.user)
         return request.user
-    else:
-        raise Http401
-
-def pet_login(func):
-    def wrap(request, *args, **kwargs):
-        if request.user is not None and not request.user.is_anonymous:
-            return func(request, *args, **kwargs)
-        else:
-            raise Http401
-    return wrap
-
+    raise Http401
 
 def get_user_or_none(request):
     if request.user is not None and not request.user.is_anonymous:
@@ -121,8 +113,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance.save()
 
     def perform_create(self, serializer):
-        instance = serializer.save()
         user = get_user(self.request)
+        instance = serializer.save()
         if user is not None:
             instance.create_by = user
             instance.last_update_by = user
@@ -232,12 +224,8 @@ class MaterialViewSet(viewsets.ModelViewSet):
             raise Http404
 
 
-class ImageUploadParser(FileUploadParser):
-    media_type = 'image/*'
-
-
 class MaterialUploadView(views.APIView):
-    parser_classes = (ImageUploadParser,)
+    parser_classes = (MultiPartParser,)
 
     def gen_filename(self, mime):
         ext = mimetypes.guess_extension(mime)
@@ -245,14 +233,12 @@ class MaterialUploadView(views.APIView):
             ext = '.jpg'
         return str(uuid.uuid1()) + ext, ext
 
-    def put(self, request, format=None):
-        file_obj = request.FILES['file']
-        mime = request.META.get('Content-Type', 'image/jpeg')
-
+    def post(self, request, format=None):
         user = get_user(request)
 
+        file_obj = request.FILES['file']
         fs = FileSystemStorage(location=os.path.join(MEDIA_ROOT, 'material'))
-        filename, ext = self.gen_filename(mime)
+        filename, ext = self.gen_filename(file_obj.content_type)
         filepath = fs.save(filename, file_obj)
         uploaded_url = fs.url(filepath)
 
