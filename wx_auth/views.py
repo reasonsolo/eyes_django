@@ -53,7 +53,7 @@ def is_openid_registered(request):
     return HttpResponse(ret.to_json())
 
 def get_openid_by_code(request):
-    result, openid, is_registered, sk = wxauth.get_openid_by_code(request)
+    result, openid, is_registered, sk, account, token = wxauth.get_openid_by_code(request)
     ret = RetData()
     if result == False:
         ret.code = 1
@@ -63,4 +63,6 @@ def get_openid_by_code(request):
         ret.data['openid'] = openid
         ret.data['is_registered'] = is_registered
         ret.data['session_key'] = sk
+        ret.data['account'] = account.to_dict()
+        ret.data['token'] = token
     return HttpResponse(ret.to_json())

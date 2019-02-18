@@ -38,11 +38,12 @@ def get_openid_by_code(request):
         session_info = api.exchange_code_for_session_key(code=code)
     except OAuth2AuthExchangeError as e:
         print(e)
-        return False, None, None, None
+        return False, None, None, None, None, None
     session_key = session_info.get('session_key', None)
     openid = session_info.get('openid', None)
     reg_status = is_openid_registered_impl(openid)
-    return True, openid, reg_status, session_key
+    account, token = get_user_info_by_openid(openid)
+    return True, openid, reg_status, session_key, account, token
 
 def is_openid_registered_impl(openid):
     if openid is None:
@@ -103,6 +104,14 @@ def get_user_info(request):
     if openid:
         try:
             account = User.objects.get(wx_openid=openid)
+            account.wx_nickname = body.get('wx_nickname', account.wx_nickname)
+            account.username = body.get('wx_nickname', account.username)
+            account.wx_avatar = body.get('wx_avatar', account.wx_avatar)
+            account.wx_gender = body.get('wx_gender', account.wx_gender)
+            account.wx_country = body.get('wx_country', account.wx_country)
+            account.wx_province = body.get('wx_province', account.wx_province)
+            account.wx_city = body.get('wx_city', account.wx_city)
+            account.save()
         except User.DoesNotExist:
             # create new account
             account = User.objects.create(wx_openid=openid,
@@ -115,6 +124,27 @@ def get_user_info(request):
                         wx_city=body.get('wx_city', None),
                         phone=body.get('phone', None))
             account.save()
+    token = create_token(account)
+    return account, token
+
+def get_user_info_by_openid(openid):
+    if openid is None:
+        return None, None
+
+    try:
+        account = User.objects.get(wx_openid=openid)
+    except User.DoesNotExist:
+        # create new account
+        account = User.objects.create(wx_openid=openid,
+                    wx_nickname=body.get('wx_nickname', None),
+                    username=body.get('username', None),
+                    wx_avatar=body.get('wx_avatar', None),
+                    wx_gender=body.get('wx_gender', 0),
+                    wx_country=body.get('wx_country', None),
+                    wx_province=body.get('wx_province', None),
+                    wx_city=body.get('wx_city', None),
+                    phone=body.get('phone', None))
+        account.save()
     token = create_token(account)
     return account, token
 
