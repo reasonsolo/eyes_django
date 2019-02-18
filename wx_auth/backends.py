@@ -1,4 +1,4 @@
-import wx_auth.auth
+from wx_auth import auth
 from django.contrib.auth import get_user_model
 
 class AuthBackend:
@@ -12,17 +12,17 @@ class AuthBackend:
         return account
 
     def authenticate(self, request, token=None):
-        print('auth by token')
         if token is None and request is None:
+            print('no token and request object is available')
             return None
         if token is None:
-           authorization = request.headers.get('Authorization')
+           authorization = request.META.get('HTTP_AUTHORIZATION', None)
            if authorization is None:
                return None
-           authorization_type, token = authorization.split(' ')
+           authorization_type, token_t = authorization.split(' ')
 
-        if token is not None:
-            result, account_id = auth.verify_auth('jwt ' + token)
+        if token_t is not None:
+            result, account_id = auth.verify_auth('jwt ' + token_t)
             if result == False:
                 return None
             else:
