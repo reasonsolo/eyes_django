@@ -15,6 +15,10 @@ class PetSpeciesSerializer(serializers.ModelSerializer):
         #    },
         #}
 
+class PetSpeciesCollectionsSerrializer(serializers.Serializer):
+    top = PetSpeciesSerializer(many=True, read_only=True)
+    ordered = PetSpeciesSerializer(many=True, read_only=True)
+
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:

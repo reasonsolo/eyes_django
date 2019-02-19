@@ -280,7 +280,9 @@ class SpeciesListView(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request):
         species_list = PetSpecies.objects
-        serializer = self.get_serializer(species_list, many=True)
+        top = PetSpecies.objects.order_by('-count')[:9]
+        ordered = PetSpecies.objects.order_by('pinyin')
+        serializer = PetSpeciesCollectionsSerrializer({'top': top, 'ordered': ordered})
         return ResultResponse(serializer.data)
 
 class PetFoundViewSet(viewsets.ModelViewSet):
