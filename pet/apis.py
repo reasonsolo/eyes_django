@@ -31,9 +31,6 @@ mimetypes.init()
 
 # Create your views here.
 
-class Http401(APIException):
-    def __init__(self):
-        super().__init__(details='需要登录', code=401)
 
 def get_absolute_url(url):
     return "http://www.1000eye.com.cn" + url
