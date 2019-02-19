@@ -117,8 +117,8 @@ class PetLost(CommonMixin):
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
-    latitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    latitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
     reward = models.IntegerField(default=0)
@@ -161,8 +161,8 @@ class PetFound(CommonMixin):
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
-    latitude = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    latitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
 
     found_status = models.IntegerField(choices=FOUND_STATUS, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
@@ -321,6 +321,7 @@ class PetCaseClose(CommonMixin):
 
 
 class PetMaterial(CommonMixin):
+    publisher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='published_material_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
     close = models.ForeignKey('PetCaseClose', on_delete=models.SET_NULL, blank=True, null=True, related_name='material_set')
