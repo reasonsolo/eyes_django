@@ -113,7 +113,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
     publisher = UserBriefSerializer(read_only=True)
     materials = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
-    species = PetSpeciesSerializer(read_only=True)
+    species = PetSpeciesSerializer()
 
     def set_user(self, instance):
         self.user = self.context['request'].user

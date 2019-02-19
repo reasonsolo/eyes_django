@@ -16,12 +16,14 @@ from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser
 from rest_framework.pagination import LimitOffsetPagination
 
+from wx_auth.backends import AuthBackend
 from pet.models import *
 from pet.serializers import *
 
 from datetime import datetime, timedelta
 from PIL import Image, ImageOps
 from collections import namedtuple
+import os
 import mimetypes
 import io
 import uuid
@@ -33,18 +35,22 @@ class Http401(APIException):
     def __init__(self):
         super().__init__(details='需要登录', code=401)
 
+def get_absolute_url(url):
+    return "http://www.1000eye.com.cn" + url
+
 def ResultResponse(data):
     if not isinstance(data, list):
         data = [data]
     return Response({'results': data})
 
 def get_user(request):
-    if request.user is not None and not request.user.is_anonymous:
-        print(request.user)
+    request.user =  AuthBackend().authenticate(request)
+    if  request.user is not None:
         return request.user
-    raise Http401
+    raise APIException(detail=u'用户未登录', code=401)
 
 def get_user_or_none(request):
+    request.user =  AuthBackend().authenticate(request)
     if request.user is not None and not request.user.is_anonymous:
         return request.user
     return None
@@ -219,9 +225,12 @@ class MaterialViewSet(viewsets.ModelViewSet):
         instance.flag = 0
         instance.save()
 
-    def perform_retrieve(self, instance):
-        if instance.flag == 0:
+    def retrieve(self, pk):
+        material = self.get_object(pk)
+        if material ==  None:
             raise Http404
+        ret = {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
+        return ResultResponse(ret)
 
 
 class MaterialUploadView(views.APIView):
@@ -237,7 +246,8 @@ class MaterialUploadView(views.APIView):
         user = get_user(request)
 
         file_obj = request.FILES['file']
-        fs = FileSystemStorage(location=os.path.join(MEDIA_ROOT, 'material'))
+        fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'material'),
+                               base_url=settings.MEDIA_URL + 'material')
         filename, ext = self.gen_filename(file_obj.content_type)
         filepath = fs.save(filename, file_obj)
         uploaded_url = fs.url(filepath)
@@ -252,11 +262,11 @@ class MaterialUploadView(views.APIView):
         thumb_filepath = fs.save(thumb_filename, thumb_io)
         thumb_url = fs.url(thumb_filepath)
 
-        material = PetMaterial(mime_type=mime, size=file_obj.size,
+        material = PetMaterial(mime_type=file_obj.content_type, size=file_obj.size,
                             url=uploaded_url, thumb_url=thumb_url,
                             create_by=user, last_update_by=user)
         material.save()
-        ret = {'id': material.id, 'url': material.url, 'thumbnail_url': material.thumb_url}
+        ret = {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
         return ResultResponse(ret)
 
 
