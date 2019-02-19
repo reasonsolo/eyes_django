@@ -109,6 +109,7 @@ class PetLost(CommonMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
     nickname = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
+    species_str = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, blank=True, null=True)
     lost_time = models.DateTimeField(blank=True, null=True, default=timezone.now)
     birthday = models.DateField(blank=True, null=True)
@@ -134,8 +135,7 @@ class PetLost(CommonMixin):
     follow_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
     tags = models.ManyToManyField('Tag', blank=True)
-    medical_status = SeparatedValuesField(max_length=MID_CHAR,choices=MEDICAL_STATUS,\
-                                          blank=True, null=True)
+    medical_status = models.CharField(max_length=MID_CHAR, blank=True, null=True)
 
     class Meta:
         ordering = ['-create_time']
