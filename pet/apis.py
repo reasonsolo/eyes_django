@@ -44,6 +44,7 @@ def get_user(request):
     request.user =  AuthBackend().authenticate(request)
     if  request.user is not None:
         return request.user
+    return None
     raise APIException(detail=u'用户未登录', code=401)
 
 def get_user_or_none(request):
@@ -259,9 +260,9 @@ class MaterialUploadView(views.APIView):
         thumb_filepath = fs.save(thumb_filename, thumb_io)
         thumb_url = fs.url(thumb_filepath)
 
-        material = PetMaterial(mime_type=file_obj.content_type, size=file_obj.size,
-                            url=uploaded_url, thumb_url=thumb_url,
-                            create_by=user, last_update_by=user)
+        material = PetMaterial(publisher=user, mime_type=file_obj.content_type,
+                               size=file_obj.size, url=uploaded_url, thumb_url=thumb_url,
+                               create_by=user, last_update_by=user)
         material.save()
         ret = {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
         return ResultResponse(ret)

@@ -48,7 +48,6 @@ class PetLostSerializer(serializers.ModelSerializer):
     def create(self, data):
         materials = data.pop('materials') if 'materials' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
-
         instance = PetLost.objects.create(**data)
         self.set_user(instance)
         self.set_tags(instance, tags_str)
@@ -88,7 +87,7 @@ class PetLostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetLost
-        fields = ('id', 'publisher', 'species', 'pet_type', 'gender', 'birthday', 'lost_time',
+        fields = ('id', 'publisher', 'species', 'species_str', 'pet_type', 'gender', 'birthday', 'lost_time',
                   'color', 'description', 'materials', 'tags', 'medical_status', 'place',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')

@@ -16,10 +16,13 @@ class AuthBackend:
         if token is None and request is None:
             return None
         if token is None:
-           authorization = request.headers.get('Authorization')
-           if authorization is None:
-               return None
-           authorization_type, token = authorization.split(' ')
+            try:
+                authorization = request.headers.get('Authorization')
+            except:
+                return None
+            if authorization is None:
+                return None
+            authorization_type, token = authorization.split(' ')
 
         if token is not None:
             result, account_id = auth.verify_auth('jwt ' + token)

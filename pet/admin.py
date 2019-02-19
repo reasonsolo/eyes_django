@@ -54,7 +54,7 @@ class LostFoundAdmin(AuditAdmin):
     filter_horizontal = ('tags',)
 
     def get_thumb_nails(self, instance):
-        materials = instance.pet_material_set.all()
+        materials = instance.material_set.all()
         html = ''
         for material in materials:
             html += "<img src='%s' height=100px width=100px/>" % material.thumb_url
