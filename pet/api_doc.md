@@ -99,6 +99,7 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
                   'case_status', 'audit_status', 'publish_charge_status')`
 `pet_type` 猫/狗/其他
 `species` 品种
+`medical_status` `,`逗号分隔字符串
 
 
 1. `/pet/losts/` 
@@ -145,7 +146,7 @@ Material对象字段`('id', 'url', 'thumb_url')`
 ## species
 Species对象字段 `('id', 'pet_type', 'name')`，`pet_type`: 1-猫, 2-狗, 0-其他
 1. `/pet/species`
-   - `GET` 返回对象列表
+   - `GET` 返回对象列表， 接受参数`pet_type`，返回`top: [species*9], ordered: [species...]`，top按照引用数量排序，ordered按照拼音首字母排序
 
 ## actions
 action: 点赞like, 转发repost, 收藏follow

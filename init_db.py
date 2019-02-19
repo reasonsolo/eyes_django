@@ -226,6 +226,7 @@ SPECIES_LIST = (
     (1174, 2, 1, '苏塞克斯猎犬'),
     (1175, 2, 1, '硬毛指示格里芬犬'),
     (1176, 2, 1, '博伊金猎犬'),
+    (2000, 0, 1, '其他'),
 )
 def init_species():
     for species in SPECIES_LIST:
