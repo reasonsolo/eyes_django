@@ -1,5 +1,6 @@
 # encoding: utf-8
 import sys, os, django
+from pypinyin import  Style, pinyin
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "eyes1000.settings")
 django.setup()
 from pet.models import *
@@ -228,7 +229,8 @@ SPECIES_LIST = (
 )
 def init_species():
     for species in SPECIES_LIST:
-        pet_species = PetSpecies(id=species[0], pet_type=species[1], name=species[3])
+        pys = ''.join([i[0] for i in pinyin(species[3], style=Style.FIRST_LETTER)])
+        pet_species = PetSpecies(id=species[0], pet_type=species[1], name=species[3], pinyin=pys)
         pet_species.save()
 
 if __name__ == '__main__':

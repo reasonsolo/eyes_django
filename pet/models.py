@@ -292,6 +292,8 @@ class MessageRelation(CommonMixin):
 class PetSpecies(CommonMixin):
     pet_type = models.IntegerField(choices=PET_TYPE, default=0)
     name = models.CharField(max_length=MID_CHAR, blank=True, null=True)
+    count = models.IntegerField(default=0)
+    pinyin = models.CharField(max_length=MID_CHAR, blank=True, null=True)
 
     def __str__(self):
         return '%d:%s' % (self.id, self.name)
