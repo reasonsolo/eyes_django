@@ -7,13 +7,17 @@ from wx_auth.serializers import UserBriefSerializer
 class PetSpeciesSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetSpecies
-        fields = ('id', 'pet_type', 'name')
+        fields = ('id', 'pet_type', 'name', 'count', 'pinyin')
         #extra_kwargs = {
         #    "id": {
         #        "read_only": False,
         #        "required": False,
         #    },
         #}
+
+class PetSpeciesCollectionsSerrializer(serializers.Serializer):
+    top = PetSpeciesSerializer(many=True, read_only=True)
+    ordered = PetSpeciesSerializer(many=True, read_only=True)
 
 
 class TagSerializer(serializers.ModelSerializer):

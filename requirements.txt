@@ -3,3 +3,4 @@ django-separatedvaluesfield
 djangorestframework
 django-reset-auth
 python-weixin
+pypinyin

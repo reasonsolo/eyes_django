@@ -118,10 +118,12 @@ class PetLostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = get_user(self.request)
         instance = serializer.save()
-        if user is not None:
-            instance.create_by = user
-            instance.last_update_by = user
-            instance.save()
+        instance.create_by = user
+        instance.last_update_by = user
+        instance.save()
+        if instance.species is not None:
+            instance.species.count += 1
+            instance.species.save()
 
     def perform_destroy(self, instance):
         instance.flag = 0
@@ -173,6 +175,9 @@ class PetLostViewSet(viewsets.ModelViewSet):
         found = PetFoundSerializer(data=request.data)
         if found.is_valid(raise_exception=True):
             found = found.save(publisher=user, lost=lost)
+            if found.species is not None:
+                found.species.count += 1
+                found.species.save()
             return ResultResponse(PetFoundSerializer(found).data)
 
     @action(detail=True)
@@ -274,7 +279,9 @@ class SpeciesListView(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request):
         species_list = PetSpecies.objects
-        serializer = self.get_serializer(species_list, many=True)
+        top = PetSpecies.objects.order_by('-count')[:9]
+        ordered = PetSpecies.objects.order_by('pinyin')
+        serializer = PetSpeciesCollectionsSerrializer({'top': top, 'ordered': ordered})
         return ResultResponse(serializer.data)
 
 class PetFoundViewSet(viewsets.ModelViewSet):
@@ -326,9 +333,11 @@ class PetFoundViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         instance = serializer.save()
         user = get_user(self.request)
-        if user is not None:
-            instance.create_by = user
-            instance.save()
+        instance.create_by = user
+        instance.save()
+        if instance.species is not None:
+            instance.species.count += 1
+            instance.species.save()
 
     def perform_destroy(self, instance):
         instance.flag = 0
