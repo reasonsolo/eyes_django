@@ -50,7 +50,7 @@ class PetMaterialSerializer(serializers.ModelSerializer):
         else:
             return ''
 
-    def get_url(self, species):
+    def get_url(self, material):
         if material.url is not None:
             return get_absolute_url(material.url)
         else:
