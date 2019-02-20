@@ -229,9 +229,11 @@ SPECIES_LIST = (
     (2000, 0, 1, '其他'),
 )
 def init_species():
+    PetSpecies.objects.all().delete()
     for species in SPECIES_LIST:
         pys = ''.join([i[0] for i in pinyin(species[3], style=Style.FIRST_LETTER)])
-        pet_species = PetSpecies(id=species[0], pet_type=species[1], name=species[3], pinyin=pys)
+        pet_species = PetSpecies(id=species[0], pet_type=species[1],
+                                 name=species[3], pinyin=pys, img='species/%s.jpg'%pys)
         pet_species.save()
 
 if __name__ == '__main__':

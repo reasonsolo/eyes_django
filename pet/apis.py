@@ -19,6 +19,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from wx_auth.backends import AuthBackend
 from pet.models import *
 from pet.serializers import *
+from eyes1000.settings import get_absolute_url
 
 from datetime import datetime, timedelta
 from PIL import Image, ImageOps
@@ -32,8 +33,6 @@ mimetypes.init()
 # Create your views here.
 
 
-def get_absolute_url(url):
-    return "http://www.1000eye.com.cn" + url
 
 def ResultResponse(data):
     if not isinstance(data, list):

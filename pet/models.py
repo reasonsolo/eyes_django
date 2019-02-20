@@ -4,9 +4,11 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.safestring import mark_safe
-from separatedvaluesfield.models import SeparatedValuesField
+from django.conf import settings
 from datetime import datetime
 from wx_auth.models import User
+
+import os
 
 SHORT_CHAR=5
 MID_CHAR=20
@@ -294,6 +296,7 @@ class PetSpecies(CommonMixin):
     name = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     count = models.IntegerField(default=0)
     pinyin = models.CharField(max_length=MID_CHAR, blank=True, null=True)
+    img = models.ImageField(upload_to='species', blank=True, null=True)
 
     def __str__(self):
         return '%d:%s' % (self.id, self.name)
