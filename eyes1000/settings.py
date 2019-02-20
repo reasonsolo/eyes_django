@@ -139,7 +139,8 @@ REST_FRAMEWORK = {
 	'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-	)
+	),
+    'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S",
 }
 
 def get_absolute_url(url):
