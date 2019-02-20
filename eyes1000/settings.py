@@ -129,7 +129,7 @@ STATIC_URL = '/static/'
 # handle file uploads
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-THUMB_SIZE = (100, 100)
+THUMB_SIZE = (120, 120)
 
 
 #AUTH_USER_MODEL = 'wx_auth.UserAccount'
@@ -141,3 +141,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
 	)
 }
+
+def get_absolute_url(url):
+    return "http://www.1000eye.com.cn" + url

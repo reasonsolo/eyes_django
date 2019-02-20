@@ -1,13 +1,22 @@
 # encoding: utf-8
+from eyes1000.settings import get_absolute_url
 from rest_framework import serializers
 from pet.models import *
 from wx_auth.serializers import UserBriefSerializer
 
 
 class PetSpeciesSerializer(serializers.ModelSerializer):
+    img = serializers.SerializerMethodField()
+
+    def get_img(self, species):
+        if species.img is not None:
+            return get_absolute_url(species.img.url)
+        else:
+            return ''
+
     class Meta:
         model = PetSpecies
-        fields = ('id', 'pet_type', 'name', 'count', 'pinyin')
+        fields = ('id', 'pet_type', 'name', 'count', 'pinyin', 'img')
         #extra_kwargs = {
         #    "id": {
         #        "read_only": False,
