@@ -119,7 +119,7 @@ class PetLostSerializer(serializers.ModelSerializer):
         instance.last_update_by = self.user
 
     def set_species(self, instance, species_id):
-        species = PetSpecies.objects.filter(id=int(species_id)).first()
+        species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
         instance.species = species
 
 
