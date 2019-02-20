@@ -54,35 +54,35 @@ class PetMaterialSerializer(serializers.ModelSerializer):
 
 class PetLostSerializer(serializers.ModelSerializer):
     publisher = UserBriefSerializer(read_only=True)
-    materials = PetMaterialSerializer(many=True, required=False)
+    material_set = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
     species = PetSpeciesSerializer(read_only=True)
 
     def create(self, data):
-        materials = data.pop('materials') if 'materials' in data else []
+        material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
         instance = PetLost.objects.create(**data)
         self.set_user(instance)
         self.set_tags(instance, tags_str)
-        self.set_materials(instance, materials)
+        self.set_material_set(instance, material_set)
 
         instance.save()
         return instance
 
     def update(self, instance, data):
-        materials = data.pop('materials') if 'materials' in data else []
+        material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
 
         self.set_user(instance)
         self.set_tags(instance, tags_str)
-        self.set_materials(instance, materials)
+        self.set_material_set(instance, material_set)
 
         instance.save()
         return instance
 
-    def set_materials(self, instance, materials):
+    def set_material_set(self, instance, material_set):
         instance.material_set.clear()
-        material_ids = [material['id'] for material in materials]
+        material_ids = [material['id'] for material in material_set]
         PetMaterial.objects.filter(id__in=material_ids, publisher=self.user).update(lost=instance)
 
     def set_tags(self, instance, tags_str):
@@ -101,7 +101,7 @@ class PetLostSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetLost
         fields = ('id', 'publisher', 'species', 'species_str', 'pet_type', 'gender', 'birthday', 'lost_time',
-                  'color', 'description', 'materials', 'tags', 'medical_status', 'place',
+                  'color', 'description', 'material_set', 'tags', 'medical_status', 'place',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')
         read_only_fields = ('view_count', 'repost_count', 'like_count',
@@ -123,7 +123,7 @@ class PetSpeciesSerializer(serializers.ModelSerializer):
 
 class PetFoundSerializer(serializers.ModelSerializer):
     publisher = UserBriefSerializer(read_only=True)
-    materials = PetMaterialSerializer(many=True, required=False)
+    material_set = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
     species = PetSpeciesSerializer()
 
@@ -134,31 +134,31 @@ class PetFoundSerializer(serializers.ModelSerializer):
         instance.last_update_by = self.user
 
     def create(self, data):
-        materials = data.pop('materials') if 'materials' in data else []
+        material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
 
         instance = PetFound.objects.create(**data)
         self.set_user(instance)
         self.set_tags(instance, tags_str)
-        self.set_materials(instance, materials)
+        self.set_material_set(instance, material_set)
 
         instance.save()
         return instance
 
     def update(self, instance, data):
-        materials = data.pop('materials') if 'materials' in data else []
+        material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
 
         self.set_user(instance)
         self.set_tags(instance, tags_str)
-        self.set_materials(instance, materials)
+        self.set_material_set(instance, material_set)
 
         instance.save()
         return instance
 
-    def set_materials(self, instance, materials):
+    def set_material_set(self, instance, material_set):
         instance.material_set.clear()
-        material_ids = [material['id'] for material in materials]
+        material_ids = [material['id'] for material in material_set]
         PetMaterial.objects.filter(id__in=material_ids, publisher=self.user).update(found=instance)
 
     def set_tags(self, instance, tags_str):
@@ -173,7 +173,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
         fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time',
                   'description', 'place', 'latitude', 'longitude',
                   'found_status', 'case_status', 'audit_status',
-                  'view_count', 'like_count', 'repost_count', 'materials')
+                  'view_count', 'like_count', 'repost_count', 'material_set')
         read_only_fields = ('view_count', 'repost_count', 'like_count',
                             'found_status', 'case_status', 'audit_status',)
         depth = 1
@@ -241,27 +241,27 @@ class CommentSerializer(serializers.ModelSerializer):
 class PetCaseCloseSerializer(serializers.ModelSerializer):
     lost = PetLostSerializer(read_only=True)
     found = PetLostSerializer(read_only=True)
-    materials = PetMaterialSerializer(many=True)
+    material_set = PetMaterialSerializer(many=True)
 
     def create(self, data):
-        materials = data.pop('materials') if 'materials' in data else []
+        material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
 
         instance = PetCaseClose.objects.create(**data)
         self.set_user(instance)
-        self.set_materials(instance, materials)
+        self.set_material_set(instance, material_set)
 
         instance.save()
         return instance
 
-    def set_materials(self, instance, materials):
+    def set_material_set(self, instance, material_set):
         instance.material_set.clear()
-        material_ids = [material['id'] for material in materials]
+        material_ids = [material['id'] for material in material_set]
         PetMaterial.objects.filter(id__in=material_ids, publisher=self.user).update(close=instance)
 
     class Meta:
         model = PetCaseClose
-        fields = ('id', 'lost', 'found', 'description', 'materials')
+        fields = ('id', 'lost', 'found', 'description', 'material_set')
 
 
 class BannerSerializer(serializers.ModelSerializer):

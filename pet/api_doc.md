@@ -94,7 +94,7 @@ BANNER_TYPE = (
 
 ## lost
 Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender', 'lost_time', 'place',
-                  'color', 'description', 'materials', 'tags', 'medical_status', 'reward', 'birthday',
+                  'color', 'description', 'material_set', 'tags', 'medical_status', 'reward', 'birthday',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
                   'case_status', 'audit_status', 'publish_charge_status')`
 `pet_type` 猫/狗/其他
@@ -110,7 +110,7 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
     - `date_range` 发布天数，和地点取交集
   - `POST` 新建lost对象, tags字段可以直接使用自定义字符串列表，会自动创建新tag或复用已存在tag
     - `publisher` 所有与当前用户有关的字段如publisher, sender, 不允许上传，使用请求验证的用户
-    - `materials` 为素材id，先通过material 接口上传素材，获取id后再创建对象
+    - `material_set` 为素材id，先通过material 接口上传素材，获取id后再创建对象
 
 2. `/pet/lost/<id>` 
   - `GET` 返回lost对象
@@ -126,7 +126,7 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
 Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'place', 'found_time'
                   'description', 'latitude', 'longitude',
                   'found_status', 'case_status', 'audit_status',
-                  'view_count', 'like_count', 'repost_count', 'materials')`
+                  'view_count', 'like_count', 'repost_count', 'material_set')`
 1. `/pet/founds` 同 `/pet/losts`
 2. `/pet/found/<id>` 同 `/pet/lost/<id>`
 3. `/pet/found/match/<id>` 同 `/pet/lost/match/<id>`
