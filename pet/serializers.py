@@ -71,15 +71,18 @@ class PetLostSerializer(serializers.ModelSerializer):
     publisher = UserBriefSerializer(read_only=True)
     material_set = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
-    species = PetSpeciesSerializer(read_only=True)
+    species = PetSpeciesSerializer()
 
     def create(self, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
+        species_id = data.pop('species') if 'species' in data else 0
         instance = PetLost.objects.create(**data)
+
         self.set_user(instance)
         self.set_tags(instance, tags_str)
         self.set_material_set(instance, material_set)
+        self.set_species(instance, species_id)
 
         instance.save()
         return instance
@@ -87,10 +90,12 @@ class PetLostSerializer(serializers.ModelSerializer):
     def update(self, instance, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
+        species_id = data.pop('species') if 'species' in data else 0
 
         self.set_user(instance)
         self.set_tags(instance, tags_str)
         self.set_material_set(instance, material_set)
+        self.set_species(instance, species_id)
 
         instance.save()
         return instance
@@ -112,6 +117,11 @@ class PetLostSerializer(serializers.ModelSerializer):
         instance.publisher = self.user
         instance.create_by = self.user
         instance.last_update_by = self.user
+
+    def set_species(self, instance, species_id):
+        species = PetSpecies.objects.filter(id=int(species_id)).first()
+        instance.species = species
+
 
     class Meta:
         model = PetLost
@@ -151,8 +161,10 @@ class PetFoundSerializer(serializers.ModelSerializer):
     def create(self, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
+        species_id = data.pop('species') if 'species' in data else 0
 
         instance = PetFound.objects.create(**data)
+        self.set_species(instance, species_id)
         self.set_user(instance)
         self.set_tags(instance, tags_str)
         self.set_material_set(instance, material_set)
@@ -163,13 +175,19 @@ class PetFoundSerializer(serializers.ModelSerializer):
     def update(self, instance, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
+        species_id = data.pop('species') if 'species' in data else 0
 
         self.set_user(instance)
+        self.set_species(instance, species_id)
         self.set_tags(instance, tags_str)
         self.set_material_set(instance, material_set)
 
         instance.save()
         return instance
+
+    def set_species(self, instance, species_id):
+        species = PetSpecies.objects.filter(id=int(species_id)).first()
+        instance.species = species
 
     def set_material_set(self, instance, material_set):
         instance.material_set.clear()
