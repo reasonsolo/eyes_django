@@ -87,37 +87,37 @@ banner_click = BannerViewSet.as_view({'get': 'click'})
 urlpatterns = format_suffix_patterns([
     # url(r'^$', api_root),
     # path('', include(router.urls)),
-    url(r'^losts/$', lost_list, name='lost-list'),
-    url(r'^lost/(?P<pk>[0-9]+)/$', lost_detail, name='lost-detail'),
-    url(r'^lost/match/(?P<pk>[0-9]+)/$', lost_match, name='lost-match'),
-    url(r'^lost/status/(?P<pk>[0-9]+)/$', lost_status, name='lost-status'),
+    url(r'^losts$', lost_list, name='lost-list'),
+    url(r'^lost/(?P<pk>[0-9]+)$', lost_detail, name='lost-detail'),
+    url(r'^lost/match/(?P<pk>[0-9]+)$', lost_match, name='lost-match'),
+    url(r'^lost/status/(?P<pk>[0-9]+)$', lost_status, name='lost-status'),
 
     url(r'^material/upload$', MaterialUploadView.as_view(), name='material-upload'),
-	url(r'^material/(?P<pk>[0-9]+)/$', material_detail, name='material-detail'),
+	url(r'^material/(?P<pk>[0-9]+)$', material_detail, name='material-detail'),
 
-    url(r'^species/$', SpeciesListView.as_view({'get': 'list'}), name='species-list'),
+    url(r'^species$', SpeciesListView.as_view({'get': 'list'}), name='species-list'),
 
-    url(r'^founds/$', found_list, name='found-list'),
-    url(r'^found/(?P<pk>[0-9]+)/$', found_detail, name='found-detail'),
-    url(r'^found/match/(?P<pk>[0-9]+)/$', found_match, name='found-match'),
-    url(r'^found/status/(?P<pk>[0-9]+)/$', found_status, name='found-status'),
+    url(r'^founds$', found_list, name='found-list'),
+    url(r'^found/(?P<pk>[0-9]+)$', found_detail, name='found-detail'),
+    url(r'^found/match/(?P<pk>[0-9]+)$', found_match, name='found-match'),
+    url(r'^found/status/(?P<pk>[0-9]+)$', found_status, name='found-status'),
 
 	url(r'^close/(?P<obj>lost|found)/(?P<pk>[0-9]+)/', case_close_obj, name='case-close-obj'),
 	url(r'^close/(?P<pk>[0-9]+)/', case_close_detail, name='case-close-detail'),
 
-    url(r'^action/(?P<action>like|repost|follow)/(?P<obj>lost|found)/(?P<pk>[0-9]+)/$', ActionLogAPIView.as_view()),
+    url(r'^action/(?P<action>like|repost|follow)/(?P<obj>lost|found)/(?P<pk>[0-9]+)$', ActionLogAPIView.as_view()),
 
-    url(r'^user/follow/$', follow_feeds, name='follow-feeds'),
-    url(r'^user/(?P<obj>lost|found)/$', MyPostView.as_view(), name='follow-feeds'),
+    url(r'^user/follow$', follow_feeds, name='follow-feeds'),
+    url(r'^user/(?P<obj>lost|found)$', MyPostView.as_view(), name='follow-feeds'),
 
-	url(r'^msg/threads/$', msg_thread_list, name='msg-thread-list'),
+	url(r'^msg/threads$', msg_thread_list, name='msg-thread-list'),
 	url(r'^msg/thread/(?P<obj>lost|found)/(?P<obj_pk>[0-9]+)$', msg_thread_relate, name='msg-thread-relate'),
 	url(r'^msg/thread/(?P<thread_pk>[0-9]+)$', message_list, name='msg-list'),
 
-	url(r'^comment/(?P<obj>lost|found)/(?P<obj_pk>[0-9]+)/$', comment_list, name='comment-list'),
+	url(r'^comment/(?P<obj>lost|found)/(?P<obj_pk>[0-9]+)$', comment_list, name='comment-list'),
 
-	url(r'^tag/$', TagView.as_view(), name='tag-list'),
+	url(r'^tag$', TagView.as_view(), name='tag-list'),
 
-	url(r'^banners/$', banner_list, name='banner-list'),
+	url(r'^banners$', banner_list, name='banner-list'),
 	url(r'^banner/(?P<pk>[0-9]+)$', banner_click, name='banner-click'),
 ])
