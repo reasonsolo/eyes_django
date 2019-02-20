@@ -41,6 +41,21 @@ class RecommendedTagSerializer(serializers.Serializer):
 
 
 class PetMaterialSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+    thumb_url = serializers.SerializerMethodField()
+
+    def get_thumb_url(self, material):
+        if material.thumb_url is not None:
+            return get_absolute_url(material.thumb_url)
+        else:
+            return ''
+
+    def get_url(self, species):
+        if material.url is not None:
+            return get_absolute_url(material.url)
+        else:
+            return ''
+
     class Meta:
         model = PetMaterial
         fields = ('id', 'url', 'thumb_url')
