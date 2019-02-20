@@ -186,7 +186,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
         return instance
 
     def set_species(self, instance, species_id):
-        species = PetSpecies.objects.filter(id=int(species_id)).first()
+        species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
         instance.species = species
 
     def set_material_set(self, instance, material_set):
