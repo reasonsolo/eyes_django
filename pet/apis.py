@@ -91,7 +91,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         if page is not None:
             ids = [instance.id for instance in page]
             PetLost.objects.filter(id__in=ids).update(view_count=F('view_count')+1)
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
         else:
             return ResultResultResponse([])
@@ -101,7 +101,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance = get_obj('lost', pk, user)
         instance.view_count += 1
         instance.save()
-        serializer = self.get_serializer(instance)
+        serializer = self.get_serializer(instance, context={'request': request})
         return ResultResponse(serializer.data)
 
     def perform_update(self, serializer):
@@ -161,7 +161,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         if page is not None:
             ids = [instance.id for instance in page]
             PetFound.objects.filter(id__in=ids).update(view_count=F('view_count')+1)
-            serializer = PetFoundSerializer(page, many=True)
+            serializer = PetFoundSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
         else:
             return ResultResponse([])
@@ -185,7 +185,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance = self.get_object(pk)
         instance.case_status = case_status
         instance.save()
-        return ResultResponse(self.get_serializer(instance).data)
+        return ResultResponse(self.get_serializer(instance, context={'request': request}).data)
 
 
 # TODO(zlz): test this
@@ -198,23 +198,23 @@ class PetCaseCloseViewSet(viewsets.ModelViewSet):
         instance = get_object(obj, pk)
         if instance.publisher != user:
             raise PermissionDenied
-        case_close = PetCaseCloseSerializer(data=request.data)
+        case_close = PetCaseCloseSerializer(data=request.data, context={'request': request})
         if case_close.is_valid(raise_exception=True):
             case_close = case_close.save(**{'publisher': user, obj:instance})
-            return ResultResponse(PetCaseCloseSerializer(case_close).data)
+            return ResultResponse(PetCaseCloseSerializer(case_close, context={'request': request}).data)
 
     def retrieve_by_obj(self, request, obj, obj_pk):
         user = get_user_or_none(self.request)
         instance = get_object(obj, pk)
         if instance.publisher != user:
             raise PermissionDenied
-        return ResultResponse(PetCaseCloseSerializer(data=instance).data)
+        return ResultResponse(PetCaseCloseSerializer(data=instance,  context={'request': request}).data)
 
     def retrieve(self, request, pk):
         instance = self.get_object(pk)
         if instance.audit_status != 1 and instance.publisher != request.user:
             raise PermissionDenied
-        return ResultResponse(PetCaseCloseSerializer(data=instance).data)
+        return ResultResponse(PetCaseCloseSerializer(data=instance, context={'request': request}).data)
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
@@ -310,7 +310,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         if page is not None:
             ids = [instance.id for instance in page]
             PetFound.objects.filter(id__in=ids).update(view_count=F(view_count)+1)
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
         else:
             return ResultResponse([])
@@ -319,7 +319,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         instance = self.get_object(pk)
         instance.view_count += 1
         instance.save()
-        serializer = self.get_serializer(instance)
+        serializer = self.get_serializer(instance, context={'request': request})
         return ResultResponse(serializer.data)
 
     def perform_update(self, serializer):
@@ -374,8 +374,8 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         if page is not None:
             ids = [instance.id for instance in page]
             PetLost.objects.filter(id__in=ids).update(view_count=F(view_count)+1)
-            serializer = self.get_serializer(page, many=True)
-            serializer = PetLostSerializer(page, many=True)
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            serializer = PetLostSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
         else:
             return ResultResponse([])
@@ -387,7 +387,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         lost = PetLostSerializer(request.data)
         if lost.is_valid(raise_exception=True):
             lost = lost.save(publisher=user, found=found)
-            return ResultResponse(PetLostSerializer(lost).data)
+            return ResultResponse(PetLostSerializer(lost, context={'request': request}).data)
 
     @action(detail=True)
     def update_case_status(self, request, pk):
@@ -396,7 +396,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         instance = self.get_object(pk)
         instance.case_status = case_status
         instance.save()
-        return ResultResponse(self.get_serializer(instance).data)
+        return ResultResponse(self.get_serializer(instance, context={'request': request}).data)
 
 class ActionLogAPIView(views.APIView):
     obj_mapping = {
@@ -422,31 +422,18 @@ class ActionLogAPIView(views.APIView):
         if action == 'boost':
             return self.boost(request, obj, pk)
 
-    def boost(self, request, obj=None, pk=None):
-        cancel = int(request.GET.get('cancel', 0))
-        instance = self.get_object(obj, pk)
-        user = get_user(request)
-        like_log, create = BoostLog.objects.get_or_create(**{'user':user, obj:instance})
-
-        if cancel == 1:
-            if not create and boost_log.flag:
-                instance.boost_count -= 1
-                instance.save()
-        else:
-            if create or not like_log.flag:
-                instance.like_count += 1
-                instance.save()
-
     def like(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
         user = get_user(request)
-        like_log, create = LikeLog.objects.get_or_create(**{'user':user, obj:instance})
+        like_log, create = LikeLog.all_objects.get_or_create(**{'user':user, obj:instance})
 
         if cancel == 1:
             if not create and like_log.flag:
                 instance.like_count -= 1
                 instance.save()
+            like_log.flag = False
+            like_log.save()
         else:
             if create or not like_log.flag:
                 instance.like_count += 1
@@ -460,7 +447,7 @@ class ActionLogAPIView(views.APIView):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
         user = get_user(request)
-        follow_log, create = FollowLog.objects.get_or_create(**{'user':user, obj:instance})
+        follow_log, create = FollowLog.all_objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and follow_log.flag:
                 instance.follow_count -= 1
@@ -479,7 +466,7 @@ class ActionLogAPIView(views.APIView):
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
         user = get_user(request)
-        repost_log, create = RepostLog.objects.get_or_create(**{'user':user, obj:instance})
+        repost_log, create = RepostLog.all_objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and repost_log.flag:
                 instance.repost_count -= 1

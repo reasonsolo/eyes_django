@@ -101,6 +101,7 @@ class CommonMixin(models.Model):
     last_update_time = models.DateTimeField(default=now)
 
     objects = FlaggedModelManager()
+    all_objects = models.Manager()
 
     class Meta:
         abstract = True
@@ -366,8 +367,6 @@ class FollowLog(CommonMixin):
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='follow_set')
     updated = models.CharField(max_length=SHORT_CHAR, choices=FLAG_CHOICE)
     obj_time = models.DateTimeField(blank=True, null=True)
-
-    objects = FlaggedModelManager()
 
     def save(self, *args, **kwargs):
         if self.lost is not None:
