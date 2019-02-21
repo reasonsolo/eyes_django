@@ -9,6 +9,7 @@ class AuthBackend:
         if username is None or password is None:
             return None
         account = auth.verify_password(username, password)
+        request.user = account
         return account
 
     def authenticate(self, request, token=None):
@@ -26,7 +27,9 @@ class AuthBackend:
             if result == False:
                 return None
             else:
-                return auth.get_user_by_id(account_id)
+                user = auth.get_user_by_id(account_id)
+                request.user = user
+                return user
         return None
 
     def get_user(self, user_id):

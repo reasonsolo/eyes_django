@@ -63,6 +63,9 @@ def get_openid_by_code(request):
         ret.data['openid'] = openid
         ret.data['is_registered'] = is_registered
         ret.data['session_key'] = sk
-        ret.data['account'] = account.to_dict()
+        if account is not None:
+            ret.data['account'] = account.to_dict()
+        else:
+            ret.data['account'] = None
         ret.data['token'] = token
     return HttpResponse(ret.to_json())

@@ -129,8 +129,6 @@
 
      'wx_nickname':string, #optional,微信呢称
 
-     'username':string, #optional 用户自定义呢称
-
      'wx_avatar': string, #optional
 
      'wx_gender':int,      #optional,1:男,2:女
