@@ -65,7 +65,7 @@ def register(request):
         account, token = get_user_info(request)
         account.phone = phone
         account.is_register = True
-        account.username = body.get('nickname', account.wx_nickname)
+        account.username = account.wx_openid
         account.gender = body.get('gender', account.wx_gender)
         birthday = body.get('birthday', None)
         if len(birthday) == 10:
@@ -89,10 +89,10 @@ def get_user_info(request):
     authorization = request.META.get('HTTP_AUTHORIZATION', None)
     account = None
     account_id = None
-    openid = body.get('openid', None)
-    result = False
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
+    openid = body.get('openid', None)
+    result = False
     if authorization is not None:
         result, account_id = verify_auth(authorization)
     try:
@@ -101,7 +101,7 @@ def get_user_info(request):
         elif openid is not None:
             account = User.objects.get(wx_openid=openid)
         account.wx_nickname = body.get('wx_nickname', account.wx_nickname)
-        account.username = body.get('wx_nickname', account.wx_openid)
+        account.username = body.get('wx_openid', account.wx_openid)
         account.wx_avatar = body.get('wx_avatar', account.wx_avatar)
         account.wx_gender = body.get('wx_gender', account.wx_gender)
         account.wx_country = body.get('wx_country', account.wx_country)
