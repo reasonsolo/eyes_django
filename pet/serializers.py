@@ -76,7 +76,7 @@ class PetLostSerializer(serializers.ModelSerializer):
     def create(self, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
-        species_id = data.pop('species') if 'species' in data else 0
+        species_id = data.pop('species') if 'species' in data else {}
         instance = PetLost.objects.create(**data)
 
         self.set_user(instance)
@@ -163,7 +163,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
     def create(self, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
-        species_id = data.pop('species') if 'species' in data else 0
+        species_id = data.pop('species') if 'species' in data else {}
 
         instance = PetFound.objects.create(**data)
         self.set_species(instance, species_id)
@@ -206,7 +206,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetFound
         fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time',
-                  'description', 'place', 'latitude', 'longitude',
+                  'description', 'place', 'latitude', 'longitude', 'reward',
                   'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'material_set',
                   'create_time', 'last_update_time')
