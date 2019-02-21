@@ -17,12 +17,12 @@ class PetSpeciesSerializer(serializers.ModelSerializer):
     class Meta:
         model = PetSpecies
         fields = ('id', 'pet_type', 'name', 'count', 'pinyin', 'img')
-        #extra_kwargs = {
-        #    "id": {
-        #        "read_only": False,
-        #        "required": False,
-        #    },
-        #}
+        extra_kwargs = {
+            "id": {
+                "read_only": False,
+                "required": False,
+            },
+        }
 
 class PetSpeciesCollectionsSerrializer(serializers.Serializer):
     top = PetSpeciesSerializer(many=True, read_only=True)

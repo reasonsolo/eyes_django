@@ -33,6 +33,7 @@ mimetypes.init()
 # Create your views here.
 
 
+COORDINATE_RANGE=0.1  # this is about 11 KM
 
 def ResultResponse(data):
     if not isinstance(data, list):
@@ -66,7 +67,6 @@ def get_obj(obj, obj_pk, user):
 class PetLostViewSet(viewsets.ModelViewSet):
     queryset = PetLost.objects
     serializer_class = PetLostSerializer
-    COORDINATE_RANGE=0.1  # this is about 11 KM
 
     def list(self, request):
         pet_type = request.GET.get('pet_type', None)
@@ -132,7 +132,6 @@ class PetLostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True)
     def match_found(self, request, pk=None):
-        COORDINATE_RANGE=0.1  # this is about 11 KM
         user = get_user_or_none(self.request)
         instance = get_obj('lost', pk, user)
         latitude, longitude = instance.latitude, instance.longitude
@@ -286,7 +285,6 @@ class SpeciesListView(viewsets.ReadOnlyModelViewSet):
         return ResultResponse(serializer.data)
 
 class PetFoundViewSet(viewsets.ModelViewSet):
-    COORDINATE_RANGE=0.1  # this is about 11 KM
     queryset = PetFound.objects
     serializer_class = PetFoundSerializer
 
