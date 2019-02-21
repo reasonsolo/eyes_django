@@ -128,9 +128,11 @@ class PetLostSerializer(serializers.ModelSerializer):
         fields = ('id', 'publisher', 'species', 'species_str', 'pet_type', 'gender', 'birthday', 'lost_time',
                   'color', 'description', 'material_set', 'tags', 'medical_status', 'place',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
-                  'case_status', 'audit_status', 'publish_charge_status')
+                  'case_status', 'audit_status', 'publish_charge_status',
+                  'create_time', 'last_update_time')
         read_only_fields = ('view_count', 'repost_count', 'like_count',
-                            'case_status', 'audit_status', 'publish_charge_status')
+                            'case_status', 'audit_status', 'publish_charge_status',
+                            'create_time', 'last_update_time')
         depth = 1
 
 
@@ -206,9 +208,11 @@ class PetFoundSerializer(serializers.ModelSerializer):
         fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time',
                   'description', 'place', 'latitude', 'longitude',
                   'found_status', 'case_status', 'audit_status',
-                  'view_count', 'like_count', 'repost_count', 'material_set')
+                  'view_count', 'like_count', 'repost_count', 'material_set',
+                  'create_time', 'last_update_time')
         read_only_fields = ('view_count', 'repost_count', 'like_count',
-                            'found_status', 'case_status', 'audit_status',)
+                            'found_status', 'case_status', 'audit_status',
+                            'create_time', 'last_update_time')
         depth = 1
 
 
