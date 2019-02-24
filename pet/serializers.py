@@ -74,24 +74,19 @@ class PetLostSerializer(serializers.ModelSerializer):
     species = PetSpeciesSerializer()
     comment_count = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
-    following = serializers.SerializerMethodField()
 
     def get_comment_count(self, instance):
         return instance.comment_set.count()
 
     def get_liked(self, instance):
+        if 'request' not in self.context:
+            return False
         user = self.context['request'].user
         if user is not None and not user.is_anonymous:
             return LikeLog.objects.filter(user=user, lost=instance).count() != 0
         else:
             return False
 
-    def get_following(self, instance):
-        user = self.context['request'].user
-        if user is not None and not user.is_anonymous:
-            return FollowLog.objects.filter(user=user, lost=instance).count() != 0
-        else:
-            return False
 
     def create(self, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
@@ -150,10 +145,10 @@ class PetLostSerializer(serializers.ModelSerializer):
                   'color', 'description', 'material_set', 'tags', 'medical_status', 'place', 'reward',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count', 'comment_count',
                   'case_status', 'audit_status', 'publish_charge_status',
-                  'create_time', 'last_update_time', 'liked', 'following')
+                  'create_time', 'last_update_time', 'liked', )
         read_only_fields = ('view_count', 'repost_count', 'like_count', 'comment_count',
                             'case_status', 'audit_status', 'publish_charge_status',
-                            'create_time', 'last_update_time', 'liked', 'following')
+                            'create_time', 'last_update_time', 'liked', )
         depth = 1
 
 
@@ -171,22 +166,16 @@ class PetFoundSerializer(serializers.ModelSerializer):
 
     comment_count = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
-    following = serializers.SerializerMethodField()
 
     def get_comment_count(self, instance):
         return instance.comment_set.count()
 
     def get_liked(self, instance):
-        user = self.context['request'].user
-        if user is not None and not user.is_anonymous:
-            return LikeLog.objects.filter(user=user, found=instance, canceled=0).count() != 0
-        else:
+        if 'request' not in self.context:
             return False
-
-    def get_following(self, instance):
         user = self.context['request'].user
         if user is not None and not user.is_anonymous:
-            return FollowLog.objects.filter(user=user, found=instance, canceled=0).count() != 0
+            return LikeLog.objects.filter(user=user, found=instance).count() != 0
         else:
             return False
 
@@ -245,10 +234,10 @@ class PetFoundSerializer(serializers.ModelSerializer):
         fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time', 'gender',
                   'description', 'place', 'latitude', 'longitude', 'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'material_set', 'comment_count',
-                  'create_time', 'last_update_time', 'liked', 'following')
+                  'create_time', 'last_update_time', 'liked')
         read_only_fields = ('view_count', 'repost_count', 'like_count', 'comment_count'
                             'found_status', 'case_status', 'audit_status',
-                            'create_time', 'last_update_time', 'liked', 'following')
+                            'create_time', 'last_update_time', 'liked')
         depth = 1
 
 

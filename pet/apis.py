@@ -150,12 +150,12 @@ class PetLostViewSet(viewsets.ModelViewSet):
                                    .filter(found_time__lte=end_time)
         queryset = queryset | PetFound.objects.filter(lost=instance)
         place_queryset = PetFound.objects.none()
-        if latitude is not None and longitude is not None:
-            coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
-                                     .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
-                                     .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
-                                     .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-            place_queryset = place_queryset | coord_queryset
+        #if latitude is not None and longitude is not None:
+        #    coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
+        #                             .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
+        #                             .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
+        #                             .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
+        #    place_queryset = place_queryset | coord_queryset
 
         if isinstance(place_queryset, EmptyQuerySet):
             found_list = queryset.all()
@@ -378,12 +378,12 @@ class PetFoundViewSet(viewsets.ModelViewSet):
                                   .filter(lost_time__lte=end_time)
         queryset = queryset | PetLost.objects.filter(found=instance)
         place_queryset = PetLost.objects.none()
-        if latitude is not None and longitude is not None:
-            coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
-                                     .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
-                                     .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
-                                     .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-            place_queryset = place_queryset | coord_queryset
+        #if latitude is not None and longitude is not None:
+        #    coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
+        #                             .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
+        #                             .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
+        #                             .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
+        #    place_queryset = place_queryset | coord_queryset
 
         if place_queryset is None:
             lost_list = queryset.all()
@@ -627,7 +627,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def create(self, request, obj, obj_pk):
         user = get_user(request)
-        ext_arg = {'publisher': user, obj: get_obj(obj, obj_pk, user)}
+        ext_arg = {'publisher': user, obj: get_obj(obj, obj_pk, user), 'audit_status':1}
         comment = CommentSerializer(data=request.data)
         if comment.is_valid(raise_exception=True):
             comment = comment.save(**ext_arg)
