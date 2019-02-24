@@ -82,14 +82,14 @@ class PetLostSerializer(serializers.ModelSerializer):
     def get_liked(self, instance):
         user = self.context['request'].user
         if user is not None and not user.is_anonymous:
-            return LikeLog.objects.filter(user=user, lost=lost, canceled=0).count() != 0
+            return LikeLog.objects.filter(user=user, lost=instance).count() != 0
         else:
             return False
 
     def get_following(self, instance):
         user = self.context['request'].user
         if user is not None and not user.is_anonymous:
-            return FollowLog.objects.filter(user=user, lost=lost, canceled=0).count() != 0
+            return FollowLog.objects.filter(user=user, lost=instance).count() != 0
         else:
             return False
 
