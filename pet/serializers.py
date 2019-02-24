@@ -261,12 +261,12 @@ class TimelineSerializer(serializers.Serializer):
     lost = PetLostSerializer(many=True)
 
 
-class FollowFeedsSerializer(serializers.ModelSerializer):
+class LikeFeedsSerializer(serializers.ModelSerializer):
     found = PetFoundSerializer()
     lost = PetLostSerializer()
 
     class Meta:
-        model = FollowLog
+        model = LikeLog
         fields = ('id', 'lost', 'found')
         depth = 2
 
