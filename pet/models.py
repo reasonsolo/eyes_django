@@ -59,9 +59,9 @@ PET_TYPE = (
     (2, '狗'),
 )
 FOUND_STATUS = (
-    (0, '不在身边'),
-    (1, '在身边'),
-    (2, '在医院'),
+    (0, '在身边'),
+    (1, '在医院'),
+    (2, '不在身边'),
 )
 MATERIAL_TYPE = (
     (0, '视频'),
@@ -161,6 +161,7 @@ class PetFound(CommonMixin):
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
+    gender = models.CharField(max_length=SHORT_CHAR, choices=GENDER_CHOICE, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
