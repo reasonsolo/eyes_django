@@ -20,7 +20,7 @@ class PetSpeciesSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "id": {
                 "read_only": False,
-                "required": False,
+                "required": True,
             },
         }
 
@@ -110,7 +110,7 @@ class PetLostSerializer(serializers.ModelSerializer):
     def update(self, instance, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
-        species_id = data.pop('species') if 'species' in data else 0
+        species_id = data.pop('species') if 'species' in data else {}
 
         self.set_user(instance)
         self.set_tags(instance, tags_str)
@@ -133,10 +133,11 @@ class PetLostSerializer(serializers.ModelSerializer):
             tag_user, create = TagUsage.objects.get_or_create(tag=tag, user=self.user)
 
     def set_user(self, instance):
-        self.user = self.context['request'].user
-        instance.publisher = self.user
-        instance.create_by = self.user
-        instance.last_update_by = self.user
+        if 'request' in self.context:
+            self.user = self.context['request'].user
+            instance.publisher = self.user
+            instance.create_by = self.user
+            instance.last_update_by = self.user
 
     def set_species(self, instance, species_id):
         species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
@@ -160,12 +161,6 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ('name', 'count')
-
-
-class PetSpeciesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PetSpecies
-        fields = ('id', 'name', 'pet_type')
 
 
 class PetFoundSerializer(serializers.ModelSerializer):
@@ -196,10 +191,11 @@ class PetFoundSerializer(serializers.ModelSerializer):
             return False
 
     def set_user(self, instance):
-        self.user = self.context['request'].user
-        instance.publisher = self.user
-        instance.create_by = self.user
-        instance.last_update_by = self.user
+        if 'request' in self.context:
+            self.user = self.context['request'].user
+            instance.publisher = self.user
+            instance.create_by = self.user
+            instance.last_update_by = self.user
 
     def create(self, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
@@ -218,7 +214,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
     def update(self, instance, data):
         material_set = data.pop('material_set') if 'material_set' in data else []
         tags_str = data.pop('tags') if 'tags' in data else []
-        species_id = data.pop('species') if 'species' in data else 0
+        species_id = data.pop('species') if 'species' in data else {}
 
         self.set_user(instance)
         self.set_species(instance, species_id)

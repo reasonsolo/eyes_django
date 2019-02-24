@@ -174,9 +174,9 @@ class PetLostViewSet(viewsets.ModelViewSet):
     def create_found(self, request, pk):
         user = get_user(self.request)
         instance = get_obj('lost', pk, user)
-        found = PetFoundSerializer(data=request.data)
+        found = PetFoundSerializer(data=request.data, context={'request': request})
         if found.is_valid(raise_exception=True):
-            found = found.save(publisher=user, lost=lost)
+            found = found.save(publisher=user, lost=instance)
             if found.species is not None:
                 found.species.count += 1
                 found.species.save()
