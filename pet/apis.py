@@ -337,8 +337,8 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         return ResultResponse(serializer.data)
 
     def perform_update(self, serializer):
-        instance = serializer.save()
         user = get_user(self.request)
+        instance = serializer.save()
         if instance.publisher == user:
             instance.last_update_by = user
             instance.save()
@@ -346,9 +346,10 @@ class PetFoundViewSet(viewsets.ModelViewSet):
             raise PermissionDenied
 
     def perform_create(self, serializer):
-        instance = serializer.save()
         user = get_user(self.request)
+        instance = serializer.save()
         instance.create_by = user
+        instance.publisher = user
         instance.save()
         if instance.species is not None:
             instance.species.count += 1
@@ -464,9 +465,9 @@ class ActionLogAPIView(views.APIView):
         return ResultResponse({'count': instance.like_count})
 
     def follow(self, request, obj=None, pk=None):
+        user = get_user(request)
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
-        user = get_user(request)
         follow_log, create = FollowLog.all_objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and follow_log.flag:
@@ -483,9 +484,9 @@ class ActionLogAPIView(views.APIView):
 
 
     def repost(self, request, obj=None, pk=None):
+        user = get_user(request)
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
-        user = get_user(request)
         repost_log, create = RepostLog.all_objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
             if not create and repost_log.flag:
