@@ -322,14 +322,15 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(found_list)
         if page is not None:
             ids = [instance.id for instance in page]
-            PetFound.objects.filter(id__in=ids).update(view_count=F(view_count)+1)
+            PetFound.objects.filter(id__in=ids).update(view_count=F('view_count')+1)
             serializer = self.get_serializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
         else:
             return ResultResponse([])
 
     def retrieve(self, request, pk=None):
-        instance = self.get_object(pk)
+        user = get_user_or_none(self.request)
+        instance = get_obj('found', pk, user)
         instance.view_count += 1
         instance.save()
         serializer = self.get_serializer(instance, context={'request': request})
@@ -392,7 +393,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(lost_list)
         if page is not None:
             ids = [instance.id for instance in page]
-            PetLost.objects.filter(id__in=ids).update(view_count=F(view_count)+1)
+            PetLost.objects.filter(id__in=ids).update(view_count=F('view_count')+1)
             serializer = self.get_serializer(page, many=True, context={'request': request})
             serializer = PetLostSerializer(page, many=True, context={'request': request})
             return self.get_paginated_response(serializer.data)
