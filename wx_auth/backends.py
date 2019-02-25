@@ -20,7 +20,10 @@ class AuthBackend:
            authorization = request.META.get('HTTP_AUTHORIZATION', None)
            if authorization is None:
                return None
-           authorization_type, token_t = authorization.split(' ')
+           try:
+               authorization_type, token_t = authorization.split(' ')
+           except:
+               return None
 
         if token_t is not None:
             result, account_id = auth.verify_auth('jwt ' + token_t)

@@ -123,10 +123,10 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
   - `GET` 修改lost状态，参数`case_status`, 0-有效，1-已结案，2-已关闭，返回对象
 
 ## found
-Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'place', 'found_time'
-                  'description', 'latitude', 'longitude',
-                  'found_status', 'case_status', 'audit_status',
-                  'view_count', 'like_count', 'repost_count', 'material_set')`
+Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color','gender',
+                 'tags', 'place', 'found_time' 'description', 'latitude', 'longitude',
+                 'found_status', 'case_status', 'audit_status', 'liked',
+                 'view_count', 'like_count', 'repost_count', 'material_set')`
 1. `/pet/founds` 同 `/pet/losts`
 2. `/pet/found/<id>` 同 `/pet/lost/<id>`
 3. `/pet/found/match/<id>` 同 `/pet/lost/match/<id>`
