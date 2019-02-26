@@ -257,7 +257,8 @@ class LikeFeedsSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-
+    sender = UserBriefSerializer()
+    receiver = UserBriefSerializer()
     def save(self, data):
         user = self.context['request'].user
         data['sender'] = user
@@ -265,29 +266,18 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ('id', 'content', 'read_status', 'create_time', 'msg_thread', 'receiver', 'sender')
+        fields = ('id', 'content', 'read_status', 'create_time', 'msg_thread',
+                  'receiver', 'sender', 'lost', 'found')
         read_only_fields = ('create_time', 'read_status', 'sender')
 
 
 class MessageThreadSerializer(serializers.ModelSerializer):
-    last_msg = MessageSerializer(read_only=True)
-
-    def validate(self, data):
-        user = self.context['request'].user
-        if data['user_a'] == data['user_b'] or\
-            (data['user_a'] != user and data['user_b'] != user):
-            raise serializers.ValidationError(u'发信用户错误')
-        return data
-
+    messages = MessageSerializer(many=True, read_only=True)
+    peer = UserBriefSerializer()
     class Meta:
         model = MessageThread
-        fields = ('id', 'user_a', 'user_b', 'message_type', 'last_msg')
-        read_only_fields = ('message_type',)
-
-
-class MessageAndThreadSerializer(serializers.Serializer):
-    msg_thread = MessageThreadSerializer(read_only=True)
-    messages = MessageSerializer(many=True, read_only=True)
+        fields = ('id', 'msg_type', 'peer', 'read', 'new', 'messages')
+        depth = 1
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -329,4 +319,3 @@ class PetCaseCloseSerializer(serializers.ModelSerializer):
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ('id', 'img', 'start_time', 'end_time', 'banner_type', 'click_url')

@@ -67,9 +67,12 @@ MATERIAL_TYPE = (
     (0, '视频'),
     (1, '图片'),
 )
+
 MESSAGE_TYPE = (
-    (0, '系统'),
-    (1, '私信'),
+    (0, '私信'),
+    (1, '发布'),
+    (2, '关注'),
+    (3, '系统'),
 )
 READ_STATUS = (
     (0, '未读'),
@@ -234,47 +237,35 @@ class Comment(CommonMixin):
     class Meta:
         ordering = ['create_time']
 
-    def __str__(self):
-        return '%d:%s@%s' % (self.id,
-                             self.publisher.wx_nickname if self.publisher is not None else 'anonymous',
-                             str(self.create_time))
 
 
 class Message(CommonMixin):
     receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='received_message_set')
-    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_message_set')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sent_message_set')
     content = models.TextField(default='')
-    message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
-    read_status = models.CharField(max_length=SHORT_CHAR, choices=READ_STATUS, default=0)
+    message_type = models.IntegerField(choices=MESSAGE_TYPE, default=0)
+    read_status = models.IntegerField(choices=READ_STATUS, default=0)
     msg_thread = models.ForeignKey('MessageThread', on_delete=models.SET_NULL, null=True, blank=True, related_name='message_set')
 
-    class Meta:
-        ordering = ['create_time']
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, blank=True)
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, blank=True)
 
-    def __str__(self):
-        return '%d:%s->%s@%s' (self.id, self.sender.wx_nickname, self.receiver.wx_nickname, str(self.create_time))
+    class Meta:
+        ordering = ['-id']
 
 
 class MessageThread(CommonMixin):
-    message_type = models.CharField(max_length=SHORT_CHAR, choices=MESSAGE_TYPE, default=0)
-    user_a = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='message_as_a_set')
-    user_b = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='message_as_b_set')
-    last_msg = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True)
+    msg_type = models.IntegerField(choices=MESSAGE_TYPE, default=0)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='msg_thr_set')
+    peer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='msg_thr_as_peer_set')
+    read = models.IntegerField(default=0)
+    new = models.IntegerField(default=0)
+    last_msg = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True)
+    hide = models.BooleanField(default=False)
+    messages = models.ManyToManyField('Message', blank=True, related_name='msg_thread_set')
 
-    def save(self, *args, **kwargs):
-        thread = MessageThread.objects.filter((Q(user_a=self.user_a)&Q(user_b=self.user_b))\
-                                              |(Q(user_a=self.user_b)&Q(user_b=self.user_a))).first()
-        if thread is None:
-            return super(MessageThread, self).save(*args, **kwargs)
-        else:
-            return thread
-
-    def __str__(self):
-        return '%d:%s-%s@%s' % (self.id, self.user_a.wx_nickname, self.user_b.wx_nickname, self.create_time)
-
-    class Meta:
-        unique_together = ('user_a', 'user_b')
-
+    #class Meta:
+    #    unique_together = ('user_a', 'user_b')
 
 class MessageRelation(CommonMixin):
     msg_thread = models.ForeignKey(MessageThread, on_delete=models.SET_NULL, null=True)
