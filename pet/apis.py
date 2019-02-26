@@ -19,6 +19,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from wx_auth.backends import AuthBackend
 from pet.models import *
 from pet.serializers import *
+from pet.messages import get_or_create_thread_by_user, update_msg_thread , init_user_system_threads
 from eyes1000.settings import get_absolute_url
 
 from datetime import datetime, timedelta
@@ -521,42 +522,58 @@ class LikeFeedsView(viewsets.ModelViewSet):
             return ResultResponse([])
 
 
-def get_or_create_thread_by_user(user_a, user_b):
-    if user_a.id > user_b.id:
-        user_a, user_b = user_b, user_a
-    elif user_a.id == user_b.id:
-        raise PermissionDenied
-    msg_thread = MessageThread.objects.filter(user_a=user_a, user_b=user_b).first()
-    if msg_thread is None:
-        msg_thread = MessageThread(user_a=user_a, user_b=user_b)
-        msg_thread.save()
-    return msg_thread
-
-
-class MessageThreadViewSet(viewsets.ModelViewSet):
+class MessageThreadViewSet(viewsets.ViewSet):
     serializer_class = MessageThreadSerializer
     queryset = MessageThread.objects
 
     def list(self, request):
         user = get_user(request)
-        queryset = MessageThread.objects.filter(Q(user_a=user)|Q(user_b=user))
-        thread_list = queryset.all()
-        serializer = self.get_serializer(thread_list, many=True)
-        return ResultResponse(serializer.data)
+        if user.msg_thr_set.count() == 0:
+            init_user_system_threads(user)
+        msg_thr = MessageThread.objects.filter(user=user, hide=False)
+        return ResultResponse(MessageThreadSerializer(msg_thr.all(),
+                                                  many=True,
+                                                  context={'request': request}).data)
 
     def retrieve(self, request, pk=None):
         user = get_user(request)
-        msg_thread = MessageThread.objects.filter(Q(user_a=user)|Q(user_b=user)).first()
-        if msg_thread is None:
+        if pk == None:
+            receiver_id = int(request.GET.get('receiver', 0))
+            receiver = User.objects.filter(pk=receiver_id).first()
+            if receiver is None or receiver.id == user.id:
+                raise Http404
+            msg_thr, create = MessageThread.objects.get_or_create(user=user, peer=receiver)
+        else:
+            msg_thr = MessageThread.objects.filter(user=user, pk=pk).first()
+        if msg_thr is None:
             raise Http404
-        return ResultResponse(self.get_serializer(msg_thread).data)
+        msgs = msg_thr.messages.order_by('-id').all()
+        serializer = MessageThreadSerializer(msg_thr)
+        response = ResultResponse(serializer.data)
+        if len(msgs) > 0:
+            msg_thr.read = msgs[0].id
+            msg_thr.new = 0
+            msg_thr.save()
+        msg_thr.messages.filter(receiver=user, read_status=0).update(read_status=1)
 
-    def create(self, request):
+        return response
+
+    @action(detail=True)
+    def hide(self, request, pk=None):
         user = get_user(request)
-        msg_thread = MessageThreadSerializer(data=request.data, context={'request': request})
-        if msg_thread.is_valid():
-            msg_thread.save()
-        return ResultResponse(self.get_serializer(msg_thread).data)
+        msg_thr = MessageThread.objects.filter(receiver=user, pk=pk).first()
+        msg_thr.hide = True
+        msg_thr.save()
+        return ResultResponse('')
+
+    @action(detail=True)
+    def create_msg(self, request, pk=None):
+        user = get_user(request)
+        message = MessageSerializer(data=request.data, context={'request': request})
+        if message.is_valid(raise_exception=True):
+            message.save()
+        update_msg_thread(message.sender, message.receiver, message)
+        return ResultResponse(self.get_serializer(message).data)
 
     @action(detail=True)
     def relate_thread(self, request, obj, obj_pk):
@@ -577,36 +594,6 @@ class MessageThreadViewSet(viewsets.ModelViewSet):
         serializer = MessageAndThreadSerializer(msg_thread=msg_thread,
                                                 messages=messages)
         return ResultResponse(serializer.data)
-
-
-class MessageViewSet(viewsets.ModelViewSet):
-    serializer_class = MessageSerializer
-    queryset = Message.objects
-
-    def list(self, request, thread_pk=None):
-        user = get_user(request)
-        msg_thread = MessageThread.objects.filter(pk=thread_pk).get()
-        message_list = Message.objects.filter(msg_thread=thread_pk).all()
-        if user != msg_thread.user_a and user != msg_thread.user_b:
-            raise PermissionDenied
-        serializer = MessageAndThreadSerializer(messages=message_list, msg_thread=msg_thread)
-        return ResultResponse(serializer.data)
-
-    def create(self, request, thread_pk=None):
-        user = get_user(request)
-        message = MessageSerializer(data=request.data, context={'request': request})
-        if message.is_valid(raise_exception=True):
-            msg_thread = get_or_create_thread_by_user(user, message.validated_data['receiver'])
-            if msg_thread is None:
-                return Reponse({'detail': u'找不到消息主题'})
-        message = message.save(msg_thread=msg_thread)
-        msg_thread.last_msg = message
-        msg_thread.save()
-        return ResultResponse(self.get_serializer(message).data)
-
-    def perform_destroy(self, instance):
-        instance.flag=0
-        instance.save()
 
 
 class CommentViewSet(viewsets.ModelViewSet):
