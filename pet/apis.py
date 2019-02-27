@@ -42,7 +42,7 @@ def ResultResponse(data):
     return Response({'results': data})
 
 def get_user(request):
-    # request.user =  AuthBackend().authenticate(request)
+    request.user =  AuthBackend().authenticate(request)
     if  request.user is not None:
         return request.user
     raise APIException(detail=u'用户未登录', code=401)
