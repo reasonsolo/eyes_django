@@ -441,8 +441,8 @@ class ActionLogAPIView(views.APIView):
             return self.follow(request, obj, pk)
         if action == 'like':
             return self.repost(request, obj, pk)
-        if action == 'boost':
-            return self.boost(request, obj, pk)
+        if action == 'repost':
+            return self.repost(request, obj, pk)
 
     def like(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
