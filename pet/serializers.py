@@ -266,18 +266,23 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ('id', 'content', 'read_status', 'create_time', 'msg_thread',
-                  'receiver', 'sender', 'lost', 'found')
-        read_only_fields = ('create_time', 'read_status', 'sender')
+        fields = ('id', 'content', 'create_time', 'receiver', 'sender', 'lost', 'found')
+        read_only_fields = ('create_time', 'sender')
 
 
 class MessageThreadSerializer(serializers.ModelSerializer):
-    messages = MessageSerializer(many=True, read_only=True)
+    last_msg = MessageSerializer(read_only=True)
+    #messages = MessageSerializer(many=True, read_only=True)
     peer = UserBriefSerializer()
     class Meta:
         model = MessageThread
-        fields = ('id', 'msg_type', 'peer', 'read', 'new', 'messages')
+        fields = ('id', 'msg_type', 'peer', 'read', 'new', 'last_msg')#, 'messages')
         depth = 1
+
+
+class MessageAndThreadSerializer(serializers.Serializer):
+    msgs = MessageSerializer(many=True, read_only=True)
+    thread = MessageThreadSerializer(read_only=True)
 
 
 class CommentSerializer(serializers.ModelSerializer):
