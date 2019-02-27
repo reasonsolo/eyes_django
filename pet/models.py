@@ -242,9 +242,9 @@ class Comment(CommonMixin):
         super(Comment, self).save(*args, **kwargs)
 
         from pet.messages import create_new_comment_message
-        if self.lost is not None:
+        if self.lost is not None and self.publisher != self.lost.publisher:
             create_new_comment_message(self.lost, 'lost')
-        elif self.found is not None:
+        elif self.found is not None and self.publisher != self.instance.publisher:
             create_new_comment_message(self.found, 'found')
 
 
