@@ -167,7 +167,7 @@ Comment评论字段 `('id', 'publisher', 'reply_to', 'create_time',  'content',
 ## message & message thread
 Message消息/私信，字段`('id', 'content', 'read_status', 'create_time', receiver', 'sender', 'lost', 'found')`, 其中`lost/found`对应消息关联的发布信息
 
-MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'sender', 'receiver', 'read', 'new', 'msg_type', 'messages')`, `messages`对应`Message`数组, 
+MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'sender', 'receiver', 'read', 'new', 'msg_type')`, `messages`对应`Message`数组, 
 `read` 已读消息的最大id，`new` 未读消息数量，一个会话会分别为消息双方用户分别创建不同的msgthread
 
 1. `/pet/msg/threads/` 对话列表
@@ -175,10 +175,10 @@ MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 's
   - `POST` 新建对话，返回对象数据
 
 2. `/pet/msg/thread/<id>` 消息列表
-  - `GET` 返回消息列表，未分页，返回 MessageAndThread
-  - `POST` 新建消息，返回对象数据, sender不能出现
+  - `GET` 返回消息列表，未分页，返回 MessageAndThread `{"thread": {....}, "msgs": [{....}]}`
+  - `POST` 新建消息，返回对象数据
 
-3. `/pet/msg/thread` 新建消息及会话
+3. `/pet/msg/thread` 新建或获得消息会话
   - `GET` 参数 receiver=<user_id> 为当前用户和receiver创建新会话或返回已存在会话内容，返回会话对象
 <del>
 4. `/pet/msg/thread/<obj>/<id>`

@@ -1,6 +1,6 @@
 # encoding: utf-8
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q,F
 from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.safestring import mark_safe
@@ -237,21 +237,45 @@ class Comment(CommonMixin):
     class Meta:
         ordering = ['create_time']
 
+    def save(self, *args, **kwargs):
+        is_create = self.pk is None
+        super(Comment, self).save(*args, **kwargs)
+
+        from pet.messages import create_new_comment_message
+        if self.lost is not None and self.publisher != self.lost.publisher:
+            create_new_comment_message(self.lost, 'lost')
+        elif self.found is not None and self.publisher != self.instance.publisher:
+            create_new_comment_message(self.found, 'found')
 
 
 class Message(CommonMixin):
-    receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='received_message_set')
-    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sent_message_set')
+    receiver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='received_message_set')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='sent_message_set')
     content = models.TextField(default='')
-    message_type = models.IntegerField(choices=MESSAGE_TYPE, default=0)
+    msg_type = models.IntegerField(choices=MESSAGE_TYPE, default=0)
     read_status = models.IntegerField(choices=READ_STATUS, default=0)
-    msg_thread = models.ForeignKey('MessageThread', on_delete=models.SET_NULL, null=True, blank=True, related_name='message_set')
 
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, blank=True)
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ['-id']
+
+    def save(self, *args, **kwargs):
+        is_create =  self.pk is None
+        super(Message, self).save(*args, **kwargs)
+        from pet.messages import update_msg_thread
+        if is_create:
+            if self.msg_type == 0:
+                update_private_msg_thread(msg.sender, receiver, msg)
+            elif self.msg_type == 1:
+                update_publisher_msg_thread(msg)
+                pass
+            elif self.msg_type == 3:
+                system_msg_threads = MessageThread.objects.filter(msg_type=3)
+                system_msg_threads.update(new=F('new')+1, last_msg=self, hide=False)
 
 
 class MessageThread(CommonMixin):

@@ -532,8 +532,8 @@ class MessageThreadViewSet(viewsets.ViewSet):
             init_user_system_threads(user)
         msg_thr = MessageThread.objects.filter(user=user, hide=False)
         return ResultResponse(MessageThreadSerializer(msg_thr.all(),
-                                                  many=True,
-                                                  context={'request': request}).data)
+                                                      many=True,
+                                                      context={'request': request}).data)
 
     def retrieve(self, request, pk=None):
         user = get_user(request)
@@ -547,14 +547,21 @@ class MessageThreadViewSet(viewsets.ViewSet):
             msg_thr = MessageThread.objects.filter(user=user, pk=pk).first()
         if msg_thr is None:
             raise Http404
-        msgs = msg_thr.messages.order_by('-id').all()
-        serializer = MessageThreadSerializer(msg_thr)
-        response = ResultResponse(serializer.data)
+        if msg_thr.msg_type == 3:
+            msgs = Message.objects.filter(msg_type=3)
+            msg_thr.last_msg = msgs.first()
+        else:
+            msgs = msg_thr.messages
+
         if len(msgs) > 0:
             msg_thr.read = msgs[0].id
             msg_thr.new = 0
             msg_thr.save()
-        msg_thr.messages.filter(receiver=user, read_status=0).update(read_status=1)
+
+        serializer = MessageAndThreadSerializer({'thread':msg_thr, 'msgs': msgs})
+        response = ResultResponse(serializer.data)
+
+        # msg_thr.messages.filter(receiver=user, read_status=0).update(read_status=1)
 
         return response
 
@@ -572,7 +579,6 @@ class MessageThreadViewSet(viewsets.ViewSet):
         message = MessageSerializer(data=request.data, context={'request': request})
         if message.is_valid(raise_exception=True):
             message.save()
-        update_msg_thread(message.sender, message.receiver, message)
         return ResultResponse(self.get_serializer(message).data)
 
     @action(detail=True)
