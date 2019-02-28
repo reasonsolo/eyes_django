@@ -29,10 +29,10 @@ import os
 import mimetypes
 import io
 import uuid
+
 mimetypes.init()
 
 # Create your views here.
-
 
 COORDINATE_RANGE=0.1  # this is about 11 KM
 
@@ -250,10 +250,7 @@ class MaterialUploadView(views.APIView):
     parser_classes = (MultiPartParser,)
 
     def gen_filename(self, mime):
-        ext = mimetypes.guess_extension(mime)
-        if ext == '.jpe':
-            ext = '.jpg'
-        return str(uuid.uuid1()) + ext, ext
+        return str(uuid.uuid1())
 
     def post(self, request, format=None):
         user = get_user(request)
@@ -261,7 +258,9 @@ class MaterialUploadView(views.APIView):
         file_obj = request.FILES['file']
         fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'material'),
                                base_url=settings.MEDIA_URL + 'material')
-        filename, ext = self.gen_filename(file_obj.content_type)
+        upload_filename = file_obj.name
+        _, ext = os.path.splitext(upload_filename)
+        filename = self.gen_filename(file_obj.content_type) + ext
         filepath = fs.save(filename, file_obj)
         uploaded_url = fs.url(filepath)
 
