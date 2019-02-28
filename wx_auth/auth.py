@@ -126,7 +126,7 @@ def get_user_by_id(id):
     try:
         return User.objects.get(id=id)
     except User.DoesNotExist:
-        print('No user exists, id: ' + id)
+        print('No user exists, id: ' + str(id))
         return None
 
 def get_user_info_by_openid(openid):
