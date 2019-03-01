@@ -61,7 +61,7 @@ def get_obj(obj, obj_pk, user):
         instance = get_object_or_404(PetFound, pk=obj_pk)
     else:
         raise Http404
-    if (instance.case_status == 2 and instance.audit_status != 1) or instance.publisher != user:
+    if instance.audit_status != 1 and instance.publisher != user:
         raise PermissionDenied
     return instance
 
@@ -552,12 +552,12 @@ class MessageThreadViewSet(viewsets.ViewSet):
         else:
             msgs = msg_thr.messages
 
-        if len(msgs) > 0:
-            msg_thr.read = msgs[0].id
+        if msgs.count() > 0:
+            msg_thr.read = msgs.first().id
             msg_thr.new = 0
             msg_thr.save()
 
-        serializer = MessageAndThreadSerializer({'thread':msg_thr, 'msgs': msgs})
+        serializer = MessageAndThreadSerializer({'thread':msg_thr, 'msgs': msgs, 'user': user})
         response = ResultResponse(serializer.data)
 
         # msg_thr.messages.filter(receiver=user, read_status=0).update(read_status=1)

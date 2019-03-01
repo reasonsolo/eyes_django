@@ -1,9 +1,10 @@
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from pet.models import *
 
 def init_user_system_threads(user):
     for i in range(1, 4):
-        msg_thr = MessageThread.objects.create(user=user, msg_type=i)
+        msg_thr, _ = MessageThread.objects.get_or_create(user=user, msg_type=i)
         # TODO(zlz): create welcome message for user
 
 
@@ -47,7 +48,7 @@ def update_private_msg_thread(msg):
     receiver_thread.messages.add(msg)
     new_msgs = receiver_thread.messages.filter(id__gt=receiver_thread.read)
     new_count = new_msgs.count()
-    if new_count > 0 and receiver_thread.new_count != new_count:
+    if new_count > 0 and receiver_thread.new != new_count:
         receiver_thread.new = new_count
         receiver_thread.hide = False
     receiver_thread.save()
@@ -64,7 +65,10 @@ def update_publisher_msg_thread(msg):
     elif msg.found is not None:
         user = msg.found.publisher
 
-    msg_thread = MessageThread.objects.filter(user=user, peer=None, msg_type=1)
+    msg_thread = MessageThread.objects.filter(user=user, peer=None, msg_type=1).first()
+    if msg_thread is None:
+        init_user_system_threads(user)
+        msg_thread = MessageThread.objects.filter(user=user, peer=None, msg_type=1).first()
     msg_thread.messages.add(msg)
     msg_thread.hide = False
     msg_thread.new += 1

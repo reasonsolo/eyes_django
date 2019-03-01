@@ -283,6 +283,7 @@ class MessageThreadSerializer(serializers.ModelSerializer):
 class MessageAndThreadSerializer(serializers.Serializer):
     msgs = MessageSerializer(many=True, read_only=True)
     thread = MessageThreadSerializer(read_only=True)
+    user = UserBriefSerializer(read_only=True)
 
 
 class CommentSerializer(serializers.ModelSerializer):

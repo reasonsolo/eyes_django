@@ -241,11 +241,11 @@ class Comment(CommonMixin):
         is_create = self.pk is None
         super(Comment, self).save(*args, **kwargs)
 
-        from pet.messages import create_new_comment_message
+        from pet.messages import create_new_comment_msg
         if self.lost is not None and self.publisher != self.lost.publisher:
-            create_new_comment_message(self.lost, 'lost')
-        elif self.found is not None and self.publisher != self.instance.publisher:
-            create_new_comment_message(self.found, 'found')
+            create_new_comment_msg(self.lost, 'lost')
+        elif self.found is not None and self.publisher != self.found.publisher:
+            create_new_comment_msg(self.found, 'found')
 
 
 class Message(CommonMixin):
@@ -266,13 +266,12 @@ class Message(CommonMixin):
     def save(self, *args, **kwargs):
         is_create =  self.pk is None
         super(Message, self).save(*args, **kwargs)
-        from pet.messages import update_msg_thread
+        from pet.messages import update_private_msg_thread, update_publisher_msg_thread
         if is_create:
             if self.msg_type == 0:
-                update_private_msg_thread(msg.sender, receiver, msg)
+                update_private_msg_thread(self)
             elif self.msg_type == 1:
-                update_publisher_msg_thread(msg)
-                pass
+                update_publisher_msg_thread(self)
             elif self.msg_type == 3:
                 system_msg_threads = MessageThread.objects.filter(msg_type=3)
                 system_msg_threads.update(new=F('new')+1, last_msg=self, hide=False)
