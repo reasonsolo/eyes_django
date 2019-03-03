@@ -167,7 +167,7 @@ Comment评论字段 `('id', 'publisher', 'reply_to', 'create_time',  'content',
 ## message & message thread
 Message消息/私信，字段`('id', 'content', 'read_status', 'create_time', receiver', 'sender', 'lost', 'found')`, 其中`lost/found`对应消息关联的发布信息
 
-MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'sender', 'receiver', 'read', 'new', 'msg_type')`, `messages`对应`Message`数组, 
+MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 'sender', 'receiver', 'read', 'new', 'last_msg', 'msg_type')`, `messages`对应`Message`数组, 
 `read` 已读消息的最大id，`new` 未读消息数量，一个会话会分别为消息双方用户分别创建不同的msgthread
 
 1. `/pet/msg/threads/` 对话列表
