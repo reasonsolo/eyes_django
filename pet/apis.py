@@ -531,6 +531,10 @@ class MessageThreadViewSet(viewsets.ViewSet):
         if user.msg_thr_set.count() == 0:
             init_user_system_threads(user)
         msg_thr = MessageThread.objects.filter(user=user, hide=False)
+        post_msg_thread = msg_thr.filter(msg_type=1)
+        from pet.messages import update_comment_msg
+        update_comment_msg()
+
         return ResultResponse(MessageThreadSerializer(msg_thr.all(),
                                                       many=True,
                                                       context={'request': request}).data)

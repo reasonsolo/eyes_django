@@ -71,21 +71,35 @@ def update_publisher_msg_thread(msg):
     msg_thread.save()
 
 
-def create_new_comment_msg(instance, inst_type):
-    msg_template = u'您发布的%s启事有新的留言'
+def update_comment_msg(instance, msg_thread):
+    msg_template = u'您发布的%s启事有%d条新的留言，点击查看'
 
     msg = Message(receiver=instance.publisher, msg_type=1)
-    if inst_type == 'lost':
-        msg.content = msg_template % u'寻宠'
+    if isinstance(instance, Lost):
+        new_comment = Comment.objects.filter(lost=instance, create_time__gt=msg_thread.last_update_time).count()
+        msg.content = msg_template % (u'寻宠', new_comment)
         msg.lost = instance
-    elif inst_type == 'found':
-        msg.content = msg_template % u'寻主'
+    elif isinstance(instance, Found):
+        new_comment = Comment.objects.filter(found=instance, create_time__gt=msg_thread.last_update_time).count()
+        msg.content = msg_template % (u'寻主', new_comment)
         msg.found = instance
     else:
         raise RuntimeError
     msg.save()
 
+def create_audit_msg(instance, inst_type):
+    msg_template = u'您发布的%s启事审核状态变更为%s，点击查看'
 
+    msg = Message(receiver=instance.publisher, msg_type=1)
 
+    if isinstance(instance, Lost):
+        msg.content = msg_template % (u'寻宠', instance.get_audit_status_display())
+        msg.lost = instance
+    elif isinstance(instance, Found):
+        msg.content = msg_template % (u'寻主', instance.get_audit_status_display())
+        msg.found = instance
+    else:
+        raise RuntimeError
+    msg.save()
 
 

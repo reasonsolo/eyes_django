@@ -276,7 +276,7 @@ class MessageThreadSerializer(serializers.ModelSerializer):
     peer = UserBriefSerializer()
     class Meta:
         model = MessageThread
-        fields = ('id', 'msg_type', 'peer', 'read', 'new', 'last_msg')#, 'messages')
+        fields = ('id', 'msg_type', 'peer', 'read', 'new', 'last_msg', 'msg_type')#, 'messages')
         depth = 1
 
 
