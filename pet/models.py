@@ -111,7 +111,23 @@ class CommonMixin(models.Model):
         ordering = ['-create_time']
 
 
-class PetLost(CommonMixin):
+class AuditMixin(models.Model):
+    def __init__(self, *args, **kwargs):
+        super(AuditMixin, self).__init__(*args, **kwargs)
+        self.__old_audit_status = self.audit_status
+
+    def audit_update(self, _from, _to):
+        from pet.messages import create_audit_msg
+        create_audit_msg(self)
+
+    def save(self, *args, **kwargs):
+        if self.__old_audit_status != self.audit_status:
+            self.audit_update(self.__old_audit_status, self.audit_status)
+        super(AuditMixin, self).save(*args, **kwargs)
+        self.__old_audit_status = self.audit_status
+
+
+class PetLost(CommonMixin, AuditMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
     nickname = models.CharField(max_length=MID_CHAR, blank=True, null=True)
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
@@ -156,8 +172,11 @@ class PetLost(CommonMixin):
             html += '<img src="%s" />' % material.thumb_url
         return mark_safe(html)
 
+    def save(self, *args, **kwargs):
+        AuditMixin.save(self, *args, **kwargs)
 
-class PetFound(CommonMixin):
+
+class PetFound(CommonMixin, AuditMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_found_set')
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True)
     found_time = models.DateTimeField(blank=True, null=True, default=timezone.now)
@@ -195,6 +214,9 @@ class PetFound(CommonMixin):
         for material in self.material_set.all():
             html += '<img src="%s" height=100px width=100px/>' % material.thumb_url
         return mark_safe(html)
+
+    def save(self, *args, **kwargs):
+        AuditMixin.save(self, *args, **kwargs)
 
 
 class Tag(CommonMixin):
@@ -237,15 +259,15 @@ class Comment(CommonMixin):
     class Meta:
         ordering = ['create_time']
 
-    def save(self, *args, **kwargs):
-        is_create = self.pk is None
-        super(Comment, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     is_create = self.pk is None
+    #     super(Comment, self).save(*args, **kwargs)
 
-        from pet.messages import create_new_comment_msg
-        if self.lost is not None and self.publisher != self.lost.publisher:
-            create_new_comment_msg(self.lost, 'lost')
-        elif self.found is not None and self.publisher != self.found.publisher:
-            create_new_comment_msg(self.found, 'found')
+        #from pet.messages import create_new_comment_message
+        #if self.lost is not None and self.publisher != self.lost.publisher:
+        #    create_new_comment_message(self.lost, 'lost')
+        #elif self.found is not None and self.publisher != self.instance.publisher:
+        #    create_new_comment_message(self.found, 'found')
 
 
 class Message(CommonMixin):
@@ -259,6 +281,9 @@ class Message(CommonMixin):
 
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, null=True, blank=True)
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, null=True, blank=True)
+
+    new_comment = models.IntegerField(default=0)
+    audit_change = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['-id']
