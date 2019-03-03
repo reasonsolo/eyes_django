@@ -19,7 +19,6 @@ def get_or_create_thread_by_user(user_a, user_b):
         msg_thread.save()
     return msg_thread
 
-
 def create_system_msg(msg, user_list):
     pass
 
@@ -75,21 +74,39 @@ def update_publisher_msg_thread(msg):
     msg_thread.save()
 
 
-def update_comment_msg(instance, msg_thread):
-    msg_template = u'您发布的%s启事有%d条新的留言，点击查看'
-
-    msg = Message(receiver=instance.publisher, msg_type=1)
+def update_comment_msg(instance):
     if isinstance(instance, Lost):
-        new_comment = Comment.objects.filter(lost=instance, create_time__gt=msg_thread.last_update_time).count()
-        msg.content = msg_template % (u'寻宠', new_comment)
-        msg.lost = instance
+        update_lost_comment_msg(instnace)
     elif isinstance(instance, Found):
-        new_comment = Comment.objects.filter(found=instance, create_time__gt=msg_thread.last_update_time).count()
-        msg.content = msg_template % (u'寻主', new_comment)
-        msg.found = instance
+        update_found_comment_msg(instnace)
     else:
         raise RuntimeError
     msg.save()
+
+def update_lost_comment_msg(lost):
+    msg_template = u'您发布的寻宠启事有%d条新的留言，点击查看'
+    msg = Message.objects.filter(lost=lost, receiver=lost.publisher, msg_type=1, read_status=0).first()
+    if msg is None:
+        msg = Message(lost=lost, receiver=lost.publisher, msg_type=1)
+    msg.new_comment += 1
+    msg.content = msg_template % (msg.new_comment)
+    msg.save()
+    msg_thread = MessageThread.objects.filter(user=lost.publisher, msg_type=1).first()
+    msg_thread.messages.add(msg)
+    return msg
+
+
+def update_found_comment_msg(found):
+    msg_template = u'您发布的寻主启事有%d条新的留言，点击查看'
+    msg = Message.objects.filter(found=found, receiver=found.publisher, msg_type=1, read_status=0).first()
+    if msg is None:
+        msg = Message(found=found, receiver=found.publisher, msg_type=1)
+    msg.new_comment += 1
+    msg.content = msg_template % (msg.new_comment)
+    msg.save()
+    msg_thread = MessageThread.objects.filter(user=found.publisher, msg_type=1)
+    msg_thread.messages.add(msg)
+    return msg
 
 
 def create_audit_msg(instance, inst_type):

@@ -532,8 +532,6 @@ class MessageThreadViewSet(viewsets.ViewSet):
             init_user_system_threads(user)
         msg_thr = MessageThread.objects.filter(user=user, hide=False)
         post_msg_thread = msg_thr.filter(msg_type=1)
-        from pet.messages import update_comment_msg
-        update_comment_msg()
 
         return ResultResponse(MessageThreadSerializer(msg_thr.all(),
                                                       many=True,
@@ -556,6 +554,7 @@ class MessageThreadViewSet(viewsets.ViewSet):
             msg_thr.last_msg = msgs.first()
         else:
             msgs = msg_thr.messages
+            msg_thr.messages.update(read_status=1)
 
         if msgs.count() > 0:
             msg_thr.read = msgs.first().id

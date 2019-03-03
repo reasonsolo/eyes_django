@@ -126,6 +126,9 @@ class AuditMixin(models.Model):
         super(AuditMixin, self).save(*args, **kwargs)
         self.__old_audit_status = self.audit_status
 
+    class Meta:
+        abstract = True
+
 
 class PetLost(CommonMixin, AuditMixin):
     publisher = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='published_lost_set')
@@ -259,15 +262,15 @@ class Comment(CommonMixin):
     class Meta:
         ordering = ['create_time']
 
-    # def save(self, *args, **kwargs):
-    #     is_create = self.pk is None
-    #     super(Comment, self).save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        is_create = self.pk is None
+        super(Comment, self).save(*args, **kwargs)
 
-        #from pet.messages import create_new_comment_message
-        #if self.lost is not None and self.publisher != self.lost.publisher:
-        #    create_new_comment_message(self.lost, 'lost')
-        #elif self.found is not None and self.publisher != self.instance.publisher:
-        #    create_new_comment_message(self.found, 'found')
+        from pet.messages import update_lost_comment_msg, update_found_comment_msg
+        if self.lost is not None and self.publisher != self.lost.publisher:
+            update_lost_comment_msg(self.lost)
+        elif self.found is not None and self.publisher != self.instance.publisher:
+            update_found_comment_msg(self.found)
 
 
 class Message(CommonMixin):

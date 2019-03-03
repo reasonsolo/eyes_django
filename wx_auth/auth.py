@@ -13,7 +13,7 @@ def get_phone_by_code(request):
     body = json.loads(body_unicode)
     appid = WxAuthConfig.WXAPP_ID
     session_key = body.get('session_key', None)
-    encrypted_data = body.get('encrypted_phone', None) 
+    encrypted_data = body.get('encrypted_phone', None)
     iv = body.get('iv', None)
     if session_key is None or encrypted_data is None or iv is None:
         return None
@@ -71,6 +71,8 @@ def register(request):
         if len(birthday) == 10:
             account.birthday = birthday
         account.save()
+        from pet.messages import init_user_system_threads
+        init_user_system_threads(account)
         return True, account, token
     else:
         return False, None, None
