@@ -109,15 +109,14 @@ def update_found_comment_msg(found):
     return msg
 
 
-def create_audit_msg(instance, inst_type):
+def create_audit_msg(instance):
     msg_template = u'您发布的%s启事审核状态变更为%s，点击查看'
 
     msg = Message(receiver=instance.publisher, msg_type=1)
-
-    if isinstance(instance, Lost):
+    if isinstance(instance, PetLost):
         msg.content = msg_template % (u'寻宠', instance.get_audit_status_display())
         msg.lost = instance
-    elif isinstance(instance, Found):
+    elif isinstance(instance, PetFound):
         msg.content = msg_template % (u'寻主', instance.get_audit_status_display())
         msg.found = instance
     else:
