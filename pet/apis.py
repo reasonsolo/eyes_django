@@ -265,6 +265,7 @@ class MaterialUploadView(views.APIView):
         uploaded_url = fs.url(filepath)
 
         image = Image.open(file_obj)
+        image = image.convert('RGB')
         thumb = ImageOps.fit(image, settings.THUMB_SIZE, Image.ANTIALIAS)
 
         thumb_io = io.BytesIO()
