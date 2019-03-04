@@ -119,7 +119,7 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
 3. `/pet/lost/match/<id>`
   - `GET` 返回匹配`lost<id>`的Found对象列表，可能是距离/时间/类型关联上的found，也包括直接提交的founda
   - `POST` 创建匹配`lost<id>`的Found对象，成功返回对象数据
-4. `/pet/lost/case/<id>`
+4. `/pet/lost/status/<id>`
   - `GET` 修改lost状态，参数`case_status`, 0-有效，1-已结案，2-已关闭，返回对象
 
 ## found
