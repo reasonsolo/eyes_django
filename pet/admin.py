@@ -24,8 +24,7 @@ def mark_as_denied(modeladmin, request, queryset):
 mark_as_passed.short_description = u'标记选中为审核通过'
 mark_as_denied.short_description = u'标记选中为审核不通过'
 
-@admin.register(Message, Tag, PetSpecies,
- PetCaseClose, PetMaterial, LikeLog, RepostLog, FollowLog)
+@admin.register(Tag, PetSpecies, PetCaseClose, PetMaterial, LikeLog, RepostLog)
 class PetAdmin(admin.ModelAdmin):
     pass
 
@@ -34,7 +33,13 @@ class AuditAdmin(admin.ModelAdmin):
 
 @admin.register(Comment)
 class CommentAdmin(AuditAdmin):
-    pass
+    list_display = ('create_time', 'publisher', 'content', 'get_audit_status_display')
+    list_filter = ('create_time', 'audit_status')
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('create_time', 'sender', 'receiver', 'content', 'get_msg_type_display', 'get_read_status_display')
+    list_filter = ('create_time', 'msg_type', 'read_status')
 
 @admin.register(Banner)
 class BannerAdmin(AuditAdmin):
