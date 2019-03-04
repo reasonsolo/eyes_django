@@ -136,13 +136,14 @@ class PetLostSerializer(serializers.ModelSerializer):
 
     def set_species(self, instance, species_id):
         species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
+        instance.pet_type = species.pet_type
         instance.species = species
 
 
     class Meta:
         model = PetLost
         fields = ('id', 'publisher', 'species', 'species_str', 'pet_type', 'gender', 'birthday', 'lost_time',
-                  'color', 'description', 'material_set', 'tags', 'medical_status', 'place', 'reward',
+                  'color', 'description', 'material_set', 'tags', 'medical_status', 'place', 'reward', 'nickname',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count', 'comment_count',
                   'case_status', 'audit_status', 'publish_charge_status',
                   'create_time', 'last_update_time', 'liked', )
@@ -215,6 +216,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
 
     def set_species(self, instance, species_id):
         species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
+        instance.pet_type = species.pet_type
         instance.species = species
 
     def set_material_set(self, instance, material_set):
@@ -231,7 +233,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetFound
-        fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time', 'gender',
+        fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time', 'gender', 
                   'description', 'place', 'latitude', 'longitude', 'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'material_set', 'comment_count',
                   'create_time', 'last_update_time', 'liked')

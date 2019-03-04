@@ -41,17 +41,16 @@ def ResultResponse(data):
         data = [data]
     return Response({'results': data})
 
-def get_user(request):
-    request.user =  AuthBackend().authenticate(request)
-    if  request.user is not None:
-        return request.user
-    raise APIException(detail=u'用户未登录', code=401)
-
 def get_user_or_none(request):
     request.user =  AuthBackend().authenticate(request)
-    if request.user is not None and not request.user.is_anonymous:
+    if request.user and not request.user.is_anonymous:
         return request.user
     return None
+
+def get_user(request):
+    user = get_user_or_none(request)
+    if not user:
+        raise APIException(detail=u'用户未登录', code=401)
 
 def get_obj(obj, obj_pk, user):
     instance = None
@@ -71,13 +70,12 @@ class PetLostViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         user = get_user_or_none(self.request)
-        pet_type = request.GET.get('pet_type', None)
+        pet_type = request.GET.get('pet_type', 1)
         longitude = request.GET.get('longitude', None)
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
-        place = request.GET.get('place', None)
         lost_queryset = PetLost.objects.filter(case_status=0, audit_status=1)
-        if latitude != None and longitude != None:
+        if latitude != None and latitude != '' and longitude != None and longitude != '':
             lost_queryset = lost_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                          .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                          .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
@@ -187,7 +185,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
     def update_case_status(self, request, pk):
         case_status = int(request.GET.get('case_status', '0'))
         user = get_user(self.request)
-        instance = self.get_object(pk)
+        instance = self.get_object()
         if instance.publisher == user:
             instance.case_status = case_status
             instance.save()
@@ -308,7 +306,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
         queryset = PetFound.objects.filter(case_status=0, audit_status=1)
-        if latitude != None and longitude != None:
+        if latitude != None and latitude != '' and longitude != None and longitude != '':
             queryset = found_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                      .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
@@ -415,7 +413,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
     def update_case_status(self, request, pk):
         case_status = int(request.GET.get('case_status', '0'))
         user = get_user(self.request)
-        instance = self.get_object(pk)
+        instance = self.get_object()
         instance.case_status = case_status
         instance.save()
         return ResultResponse(self.get_serializer(instance, context={'request': request}).data)
