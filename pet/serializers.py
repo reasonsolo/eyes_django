@@ -259,18 +259,8 @@ class LikeFeedsSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = UserBriefSerializer()
-    receiver = UserBriefSerializer()
-
-    def save(self, data):
-        thread = self.context['request'].thread
-        user = self.context['request'].user
-
-        msg = Message(**data)
-        msg.sender = user
-        msg.receiver =  thread.peer
-        msg.save()
-        return msg
+    sender = UserBriefSerializer(required=False)
+    receiver = UserBriefSerializer(required=False)
 
     class Meta:
         model = Message

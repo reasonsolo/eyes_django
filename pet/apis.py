@@ -579,11 +579,15 @@ class MessageThreadViewSet(viewsets.ViewSet):
     @action(detail=True)
     def create_msg(self, request, pk=None):
         user = get_user(request)
-        msg_thread = self.get_object()
-        message = MessageSerializer(data=request.data, context={'request': request, 'thread': msg_thread})
+        msg_thread = MessageThread.objects.filter(pk=pk).first()
+        if msg_thread is None:
+            raise Http404
+        if msg_thread.user != user:
+            raise PermissionDenied
+        message = MessageSerializer(data=request.data, context={'request': request})
         if message.is_valid(raise_exception=True):
-            message.save()
-        return ResultResponse(self.get_serializer(message).data)
+            message.save(**{'receiver': msg_thread.peer, 'sender': user})
+        return ResultResponse(MessageSerializer(message).data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
