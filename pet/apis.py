@@ -550,19 +550,19 @@ class MessageThreadViewSet(viewsets.ViewSet):
         if msg_thr is None:
             raise Http404
         if msg_thr.msg_type == 3:
-            msgs = Message.objects.filter(msg_type=3)
+            msgs = Message.objects.filter(msg_type=3).order_by('-id')
             msg_thr.last_msg = msgs.first()
         else:
-            msgs = msg_thr.messages
-            msg_thr.messages.update(read_status=1)
+            msgs = msg_thr.messages.order_by('-id')
 
         if msgs.count() > 0:
-            msg_thr.read = msgs.first().id
+            msg_thr.read = msgs.last().id
             msg_thr.new = 0
             msg_thr.save()
 
         serializer = MessageAndThreadSerializer({'thread':msg_thr, 'msgs': msgs, 'user': user, 'peer': receiver})
         response = ResultResponse(serializer.data)
+        msg_thr.messages.filter(receiver=user).update(read_status=1)
 
         # msg_thr.messages.filter(receiver=user, read_status=0).update(read_status=1)
 
