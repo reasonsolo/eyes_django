@@ -579,7 +579,8 @@ class MessageThreadViewSet(viewsets.ViewSet):
     @action(detail=True)
     def create_msg(self, request, pk=None):
         user = get_user(request)
-        message = MessageSerializer(data=request.data, context={'request': request})
+        msg_thread = self.get_object()
+        message = MessageSerializer(data=request.data, context={'request': request, 'thread': msg_thread})
         if message.is_valid(raise_exception=True):
             message.save()
         return ResultResponse(self.get_serializer(message).data)

@@ -233,7 +233,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PetFound
-        fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time', 'gender', 
+        fields = ('id', 'publisher', 'species', 'pet_type', 'color', 'tags', 'found_time', 'gender',
                   'description', 'place', 'latitude', 'longitude', 'found_status', 'case_status', 'audit_status',
                   'view_count', 'like_count', 'repost_count', 'material_set', 'comment_count',
                   'create_time', 'last_update_time', 'liked')
@@ -261,15 +261,21 @@ class LikeFeedsSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserBriefSerializer()
     receiver = UserBriefSerializer()
+
     def save(self, data):
+        thread = self.context['request'].thread
         user = self.context['request'].user
-        data['sender'] = user
-        return Message(**data)
+
+        msg = Message(**data)
+        msg.sender = user
+        msg.receiver =  thread.peer
+        msg.save()
+        return msg
 
     class Meta:
         model = Message
         fields = ('id', 'content', 'create_time', 'receiver', 'sender', 'lost', 'found')
-        read_only_fields = ('create_time', 'sender')
+        read_only_fields = ('create_time', 'sender', 'receiver')
 
 
 class MessageThreadSerializer(serializers.ModelSerializer):
