@@ -41,10 +41,12 @@ def update_private_msg_thread(msg):
                                                                 peer=receiver,
                                                                 msg_type=msg_type)
     sender_thread.messages.add(msg)
+    sender_thread.last_msg = msg
     receiver_thread, create = MessageThread.objects.get_or_create(peer=sender,
                                                                   user=receiver,
                                                                   msg_type=msg_type)
     receiver_thread.messages.add(msg)
+    receiver_thread.last_msg = msg
     new_msgs = receiver_thread.messages.filter(id__gt=receiver_thread.read)
     new_count = new_msgs.count()
     if new_count > 0 and receiver_thread.new != new_count:
@@ -71,6 +73,7 @@ def update_publisher_msg_thread(msg):
     msg_thread.messages.add(msg)
     msg_thread.hide = False
     msg_thread.new += 1
+    msg_thread.last_msg = msg
     msg_thread.save()
 
 
@@ -93,6 +96,8 @@ def update_lost_comment_msg(lost):
     msg.save()
     msg_thread = MessageThread.objects.filter(user=lost.publisher, msg_type=1).first()
     msg_thread.messages.add(msg)
+    msg_thread.last_msg = msg
+    msg_thread.save()
     return msg
 
 
@@ -104,8 +109,10 @@ def update_found_comment_msg(found):
     msg.new_comment += 1
     msg.content = msg_template % (msg.new_comment)
     msg.save()
-    msg_thread = MessageThread.objects.filter(user=found.publisher, msg_type=1)
+    msg_thread = MessageThread.objects.filter(user=found.publisher, msg_type=1).first()
     msg_thread.messages.add(msg)
+    msg_thread.last_msg = msg
+    msg_thread.save()
     return msg
 
 
@@ -122,5 +129,9 @@ def create_audit_msg(instance):
     else:
         raise RuntimeError
     msg.save()
-
+    msg_thread = MessageThread.objects.filter(user=instance.publisher, msg_type=1).first()
+    msg_thread.messages.add(msg)
+    msg_thread.last_msg = msg
+    msg_thread.save()
+    return msg
 
