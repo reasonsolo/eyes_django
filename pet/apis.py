@@ -554,7 +554,7 @@ class MessageThreadViewSet(viewsets.ViewSet):
             msg_thr.last_msg = msgs.first()
         else:
             msgs = msg_thr.messages
-            msg_thr.messages.update(read_status=1)
+            msg_thr.messages.filter(receiver=user).update(read_status=1)
 
         if msgs.count() > 0:
             msg_thr.read = msgs.first().id
@@ -580,6 +580,8 @@ class MessageThreadViewSet(viewsets.ViewSet):
     def create_msg(self, request, pk=None):
         user = get_user(request)
         msg_thread = self.get_object()
+        if msg_thread.user != user:
+            raise PermissionDenied
         message = MessageSerializer(data=request.data, context={'request': request, 'thread': msg_thread})
         if message.is_valid(raise_exception=True):
             message.save()
