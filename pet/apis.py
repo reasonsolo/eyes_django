@@ -49,8 +49,9 @@ def get_user_or_none(request):
 
 def get_user(request):
     user = get_user_or_none(request)
-    if not user:
+    if user is None:
         raise APIException(detail=u'用户未登录', code=401)
+    return user
 
 def get_obj(obj, obj_pk, user):
     instance = None
@@ -537,6 +538,7 @@ class MessageThreadViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         user = get_user(request)
+        receiver = None
         if pk == None:
             receiver_id = int(request.GET.get('receiver', 0))
             receiver = User.objects.filter(pk=receiver_id).first()
@@ -559,7 +561,7 @@ class MessageThreadViewSet(viewsets.ViewSet):
             msg_thr.new = 0
             msg_thr.save()
 
-        serializer = MessageAndThreadSerializer({'thread':msg_thr, 'msgs': msgs, 'user': user})
+        serializer = MessageAndThreadSerializer({'thread':msg_thr, 'msgs': msgs, 'user': user, 'peer': receiver})
         response = ResultResponse(serializer.data)
 
         # msg_thr.messages.filter(receiver=user, read_status=0).update(read_status=1)
@@ -581,26 +583,6 @@ class MessageThreadViewSet(viewsets.ViewSet):
         if message.is_valid(raise_exception=True):
             message.save()
         return ResultResponse(self.get_serializer(message).data)
-
-    @action(detail=True)
-    def relate_thread(self, request, obj, obj_pk):
-        user = get_user(request)
-        if obj == 'lost':
-            obj_class = PetLost
-        elif obj == 'found':
-            obj_class = PetFound
-        else:
-            raise Http404
-        related_obj = obj_class.objects.filter(pk).first()
-        if related_obj is None:
-            raise Http404
-        user_a = user
-        user_b = related_obj.publisher
-        msg_thread = get_or_create_thread_by_user(user_a, user_b)
-        messages = Message.objects.filter(msg_thread=msg_thread)
-        serializer = MessageAndThreadSerializer(msg_thread=msg_thread,
-                                                messages=messages)
-        return ResultResponse(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
