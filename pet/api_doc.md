@@ -175,7 +175,7 @@ MessageThread 消息对话，用户a和用户b之间的对话，字段`('id', 's
   - `POST` 新建对话，返回对象数据
 
 2. `/pet/msg/thread/<id>` 消息列表
-  - `GET` 返回消息列表，未分页，返回 MessageAndThread `{"thread": {....}, "msgs": [{....}]}`
+  - `GET` 返回消息列表，未分页，返回 MessageAndThread `{"thread": {....}, "msgs": [{....}], "user": {...}, "peer": {...}}`,i其中user表示当前用户，peer表示会话对方
   - `POST` 新建消息，返回对象数据
 
 3. `/pet/msg/thread` 新建或获得消息会话
