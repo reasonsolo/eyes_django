@@ -76,17 +76,16 @@ class PetLostViewSet(viewsets.ModelViewSet):
         longitude = request.GET.get('longitude', None)
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
-        lost_queryset = PetLost.objects.filter(case_status=0, audit_status=1)
+        pet_type = 1 if pet_type == '' else int(pet_Type)
+        queryset = PetLost.objects.filter(case_status=0, audit_status=1, pet_type=pet_type)
         if latitude != None and latitude != '' and longitude != None and longitude != '':
-            lost_queryset = lost_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
+            queryset = lost_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                          .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                          .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
                                          .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-        if pet_type != None:
-            lost_queryset.filter(pet_type=int(pet_type))
-        if date_range != None:
+        if date_range is not None and date_range != '':
             start_time = datetime.now() - timedelta(days=date_range)
-            lost_queryset.filter(create_time__gte=start_time)
+            queryset = queryset.filter(create_time__gte=start_time)
 
         lost_list = lost_queryset.all()
         page = self.paginate_queryset(lost_list)
@@ -301,21 +300,20 @@ class PetFoundViewSet(viewsets.ModelViewSet):
 
     def list(self, request):
         user = get_user_or_none(self.request)
-        pet_type = request.GET.get('pet_type', None)
+        pet_type = request.GET.get('pet_type', 1)
         longitude = request.GET.get('longitude', None)
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
-        queryset = PetFound.objects.filter(case_status=0, audit_status=1)
+        pet_type = 1 if pet_type == '' else int(pet_Type)
+        queryset = PetFound.objects.filter(case_status=0, audit_status=1, pet_type=pet_type)
         if latitude != None and latitude != '' and longitude != None and longitude != '':
-            queryset = found_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
+            queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                      .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
                                      .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-        if pet_type != None:
-            queryset.filter(pet_type=int(pet_type))
         if date_range != None:
-            start_time = datetime.now() - timedelta(days=date_range)
-            queryset.filter(create_time__gte=start_time)
+            start_time = datetime.now() - timedelta(days=int(date_range))
+            queryset = queryset.filter(create_time__gte=start_time)
 
         found_list = queryset.all()
         page = self.paginate_queryset(found_list)
