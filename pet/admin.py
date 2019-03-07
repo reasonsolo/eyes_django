@@ -16,10 +16,14 @@ class EyesAdminSite(admin.AdminSite):
 
 
 def mark_as_passed(modeladmin, request, queryset):
-    queryset.update(audit_status=1)
+    for inst in queryset:
+        inst.audit_stauts = 1
+        inst.save()
 
 def mark_as_denied(modeladmin, request, queryset):
-    queryset.update(audit_status=2)
+    for inst in queryset:
+        inst.audit_stauts = 2
+        inst.save()
 
 mark_as_passed.short_description = u'标记选中为审核通过'
 mark_as_denied.short_description = u'标记选中为审核不通过'

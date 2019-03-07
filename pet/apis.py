@@ -146,16 +146,16 @@ class PetLostViewSet(viewsets.ModelViewSet):
         start_time = lost_time - timedelta(days=30)
         end_time = lost_time + timedelta(days=30)
 
-        queryset = PetFound.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
-                                   .filter(found_time__gte=start_time)\
-                                   .filter(found_time__lte=end_time)\
-                                   .filter(lost=instance)
+        queryset = PetFound.objects.filter(lost=instance, audit_status=1)
         place_queryset = PetFound.objects.none()
         if latitude is not None and longitude is not None:
             coord_queryset = queryset.filter(longitude__lte=float(longitude)+MATCH_COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-MATCH_COORDINATE_RANGE)\
                                      .filter(latitude__lte=float(latitude)+MATCH_COORDINATE_RANGE)\
-                                     .filter(latitude__gte=float(latitude)-MATCH_COORDINATE_RANGE)
+                                     .filter(latitude__gte=float(latitude)-MATCH_COORDINATE_RANGE)\
+                                     .filter(audit_status=1, case_status=0, pet_type=pet_type)\
+                                     .filter(found_time__gte=start_time)\
+                                     .filter(found_time__lte=end_time)
             queryset = queryset | coord_queryset
             queryset = queryset.distinct()
 
@@ -374,15 +374,15 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         start_time = found_time - timedelta(days=30)
         end_time = found_time + timedelta(days=30)
 
-        queryset = PetLost.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
-                                  .filter(lost_time__gte=start_time)\
-                                  .filter(lost_time__lte=end_time)\
-                                  .filter(found=instance)
+        queryset = PetLost.objects.filter(audit_status=1, found=instance)
         if latitude is not None and longitude is not None:
             coord_queryset = queryset.filter(longitude__lte=float(longitude)+MATCH_COORDINATE_RANGE)\
                                      .filter(longitude__gte=float(longitude)-MATCH_COORDINATE_RANGE)\
                                      .filter(latitude__lte=float(latitude)+MATCH_COORDINATE_RANGE)\
-                                     .filter(latitude__gte=float(latitude)-MATCH_COORDINATE_RANGE)
+                                     .filter(latitude__gte=float(latitude)-MATCH_COORDINATE_RANGE)\
+                                     .filter(lost_time__gte=start_time)\
+                                     .filter(lost_time__lte=end_time)\
+                                     .filter(case_status=0, pet_type=pet_type, audit_status=1)
             queryset = queryset | coord_queryset
             queryset = queryset.distinct()
 
