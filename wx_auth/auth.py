@@ -71,8 +71,6 @@ def register(request):
         if len(birthday) == 10:
             account.birthday = birthday
         account.save()
-        from pet.messages import init_user_system_threads
-        init_user_system_threads(account)
         return True, account, token
     else:
         return False, None, None
@@ -121,6 +119,8 @@ def get_user_info(request):
                     wx_city=body.get('wx_city', None),
                     phone=body.get('phone', None))
     account.save()
+    from pet.messages import init_user_system_threads
+    init_user_system_threads(account)
     token = create_token(account)
     return account, token
 
