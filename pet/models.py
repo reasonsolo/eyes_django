@@ -93,7 +93,6 @@ class FlaggedModelManager(models.Manager):
     def get_queryset(self):
         return super(FlaggedModelManager, self).get_queryset().filter(flag=1)
 
-
 class CommonMixin(models.Model):
     flag = models.IntegerField(choices=FLAG_CHOICE, default=1)
     create_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True,\
@@ -146,6 +145,7 @@ class PetLost(CommonMixin, AuditMixin):
     longitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
     latitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
+    # IMPORTANT: do NOT use update() to update audit_status, or the audit message will be missing
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
     reward = models.IntegerField(default=0)
     is_in_boost = models.BooleanField(default=False)
@@ -186,7 +186,7 @@ class PetFound(CommonMixin, AuditMixin):
     species = models.ForeignKey('PetSpecies', on_delete=models.SET_NULL, blank=True, null=True)
     pet_type = models.IntegerField(choices=PET_TYPE, default=1)
     color = models.CharField(max_length=MID_CHAR, blank=True, null=True)
-    gender = models.CharField(max_length=SHORT_CHAR, choices=GENDER_CHOICE, blank=True, null=True)
+    gender = models.IntegerField(choices=GENDER_CHOICE, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
