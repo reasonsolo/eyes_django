@@ -35,6 +35,7 @@ mimetypes.init()
 # Create your views here.
 
 COORDINATE_RANGE=0.1  # this is about 11 KM
+MATCH_COORDINATE_RANGE=0.01
 
 def ResultResponse(data):
     if not isinstance(data, list):
@@ -147,20 +148,18 @@ class PetLostViewSet(viewsets.ModelViewSet):
 
         queryset = PetFound.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
                                    .filter(found_time__gte=start_time)\
-                                   .filter(found_time__lte=end_time)
-        queryset = queryset | PetFound.objects.filter(lost=instance)
+                                   .filter(found_time__lte=end_time)\
+                                   .filter(lost=instance)
         place_queryset = PetFound.objects.none()
-        #if latitude is not None and longitude is not None:
-        #    coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
-        #                             .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
-        #                             .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
-        #                             .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-        #    place_queryset = place_queryset | coord_queryset
+        if latitude is not None and longitude is not None:
+            coord_queryset = queryset.filter(longitude__lte=float(longitude)+MATCH_COORDINATE_RANGE)\
+                                     .filter(longitude__gte=float(longitude)-MATCH_COORDINATE_RANGE)\
+                                     .filter(latitude__lte=float(latitude)+MATCH_COORDINATE_RANGE)\
+                                     .filter(latitude__gte=float(latitude)-MATCH_COORDINATE_RANGE)
+            queryset = queryset | coord_queryset
+            queryset = queryset.distinct()
 
-        if isinstance(place_queryset, EmptyQuerySet):
-            found_list = queryset.all()
-        else:
-            found_list = place_queryset.all()
+        found_list = queryset.all()
         page = self.paginate_queryset(found_list)
         if page is not None:
             ids = [instance.id for instance in page]
@@ -377,20 +376,17 @@ class PetFoundViewSet(viewsets.ModelViewSet):
 
         queryset = PetLost.objects.filter(audit_status=1, case_status=0, pet_type=pet_type)\
                                   .filter(lost_time__gte=start_time)\
-                                  .filter(lost_time__lte=end_time)
-        queryset = queryset | PetLost.objects.filter(found=instance)
-        place_queryset = PetLost.objects.none()
-        #if latitude is not None and longitude is not None:
-        #    coord_queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
-        #                             .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
-        #                             .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
-        #                             .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
-        #    place_queryset = place_queryset | coord_queryset
+                                  .filter(lost_time__lte=end_time)\
+                                  .filter(found=instance)
+        if latitude is not None and longitude is not None:
+            coord_queryset = queryset.filter(longitude__lte=float(longitude)+MATCH_COORDINATE_RANGE)\
+                                     .filter(longitude__gte=float(longitude)-MATCH_COORDINATE_RANGE)\
+                                     .filter(latitude__lte=float(latitude)+MATCH_COORDINATE_RANGE)\
+                                     .filter(latitude__gte=float(latitude)-MATCH_COORDINATE_RANGE)
+            queryset = queryset | coord_queryset
+            queryset = queryset.distinct()
 
-        if place_queryset is None:
-            lost_list = queryset.all()
-        else:
-            lost_list = place_queryset.all()
+        lost_list = queryset.all()
         page = self.paginate_queryset(lost_list)
         if page is not None:
             ids = [instance.id for instance in page]
@@ -527,7 +523,7 @@ class MessageThreadViewSet(viewsets.ViewSet):
 
     def list(self, request):
         user = get_user(request)
-        if user.msg_thr_set.count() == 0:
+        if user.msg_thr_set.filter(msg_type=3).count() == 0:
             init_user_system_threads(user)
         msg_thr = MessageThread.objects.filter(user=user, hide=False)
         post_msg_thread = msg_thr.filter(msg_type=1)
