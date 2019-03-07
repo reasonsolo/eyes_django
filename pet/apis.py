@@ -527,7 +527,7 @@ class MessageThreadViewSet(viewsets.ViewSet):
 
     def list(self, request):
         user = get_user(request)
-        if user.msg_thr_set.count() == 0:
+        if user.msg_thr_set.filter(msg_type=3).count() == 0:
             init_user_system_threads(user)
         msg_thr = MessageThread.objects.filter(user=user, hide=False)
         post_msg_thread = msg_thr.filter(msg_type=1)
@@ -550,10 +550,10 @@ class MessageThreadViewSet(viewsets.ViewSet):
         if msg_thr is None:
             raise Http404
         if msg_thr.msg_type == 3:
-            msgs = Message.objects.filter(msg_type=3).order_by('-id')
+            msgs = Message.objects.filter(msg_type=3).order_by('id')
             msg_thr.last_msg = msgs.first()
         else:
-            msgs = msg_thr.messages.order_by('-id')
+            msgs = msg_thr.messages.order_by('id')
 
         if msgs.count() > 0:
             msg_thr.read = msgs.last().id
