@@ -622,7 +622,9 @@ class MyPostView(views.APIView, LimitOffsetPagination):
             serializer_class = PetFoundSerializer
         else:
             raise Http404
-        queryset = obj_class.objects.filter(publisher=user)
+        pet_type = request.GET.get('pet_type', 1)
+        pet_type = 1 if pet_type == '' else int(pet_Type)
+        queryset = obj_class.objects.filter(publisher=user, pet_type=pet_type)
         page = self.paginate_queryset(queryset.all(), request=request)
         if page is not None:
             serializer = serializer_class(page, many=True)
