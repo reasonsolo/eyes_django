@@ -76,10 +76,10 @@ class PetLostViewSet(viewsets.ModelViewSet):
         longitude = request.GET.get('longitude', None)
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
-        pet_type = 1 if pet_type == '' else int(pet_Type)
+        pet_type = 1 if pet_type == '' else int(pet_type)
         queryset = PetLost.objects.filter(case_status=0, audit_status=1, pet_type=pet_type)
         if latitude != None and latitude != '' and longitude != None and longitude != '':
-            queryset = lost_queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
+            queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
                                          .filter(longitude__gte=float(longitude)-COORDINATE_RANGE)\
                                          .filter(latitude__lte=float(latitude)+COORDINATE_RANGE)\
                                          .filter(latitude__gte=float(latitude)-COORDINATE_RANGE)
@@ -87,7 +87,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
             start_time = datetime.now() - timedelta(days=date_range)
             queryset = queryset.filter(create_time__gte=start_time)
 
-        lost_list = lost_queryset.all()
+        lost_list = queryset.all()
         page = self.paginate_queryset(lost_list)
         if page is not None:
             ids = [instance.id for instance in page]
@@ -304,7 +304,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         longitude = request.GET.get('longitude', None)
         latitude = request.GET.get('latitude', None)
         date_range = request.GET.get('date_range', None)
-        pet_type = 1 if pet_type == '' else int(pet_Type)
+        pet_type = 1 if pet_type == '' else int(pet_type)
         queryset = PetFound.objects.filter(case_status=0, audit_status=1, pet_type=pet_type)
         if latitude != None and latitude != '' and longitude != None and longitude != '':
             queryset = queryset.filter(longitude__lte=float(longitude)+COORDINATE_RANGE)\
