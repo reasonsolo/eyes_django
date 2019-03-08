@@ -143,5 +143,9 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S",
 }
 
+USE_X_FORWARDED_HOST=True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
 def get_absolute_url(url):
-    return "http://www.1000eye.com.cn" + url
+    return "https://www.1000eye.com.cn" + url

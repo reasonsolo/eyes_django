@@ -623,7 +623,7 @@ class MyPostView(views.APIView, LimitOffsetPagination):
         else:
             raise Http404
         pet_type = request.GET.get('pet_type', 1)
-        pet_type = 1 if pet_type == '' else int(pet_Type)
+        pet_type = 1 if pet_type == '' else int(pet_type)
         queryset = obj_class.objects.filter(publisher=user, pet_type=pet_type)
         page = self.paginate_queryset(queryset.all(), request=request)
         if page is not None:

@@ -15,25 +15,29 @@ class EyesAdminSite(admin.AdminSite):
         super(EyesAdminSite, self).save_model(self, request, obj, form, change)
 
 
-def mark_as_passed(modeladmin, request, queryset):
-    for inst in queryset:
-        inst.audit_stauts = 1
-        inst.save()
-
-def mark_as_denied(modeladmin, request, queryset):
-    for inst in queryset:
-        inst.audit_stauts = 2
-        inst.save()
-
-mark_as_passed.short_description = u'标记选中为审核通过'
-mark_as_denied.short_description = u'标记选中为审核不通过'
-
 @admin.register(Tag, PetSpecies, PetCaseClose, PetMaterial, LikeLog, RepostLog)
 class PetAdmin(admin.ModelAdmin):
     pass
 
+# do NOT use update method, use save to trigger audit message
+def mark_as_passed(modeladmin, request, queryset):
+    for inst in queryset:
+        inst.audit_status = 1
+        inst.save()
+    # queryset.update(audit_status=1)
+
+def mark_as_denied(modeladmin, request, queryset):
+    for inst in queryset:
+        inst.audit_status = 2
+        inst.save()
+    #queryset.update(audit_status=2)
+
+mark_as_passed.short_description = u'标记选中为审核通过'
+mark_as_denied.short_description = u'标记选中为审核不通过'
+
 class AuditAdmin(admin.ModelAdmin):
     actions = [mark_as_passed, mark_as_denied]
+
 
 @admin.register(Comment)
 class CommentAdmin(AuditAdmin):

@@ -122,6 +122,7 @@ class AuditMixin(models.Model):
     def save(self, *args, **kwargs):
         if self.__old_audit_status != self.audit_status:
             self.audit_update(self.__old_audit_status, self.audit_status)
+        print("audit save %d -> %d" % (self.__old_audit_status, self.audit_status))
         super(AuditMixin, self).save(*args, **kwargs)
         self.__old_audit_status = self.audit_status
 
@@ -160,7 +161,7 @@ class PetLost(CommonMixin, AuditMixin):
     follow_count = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
     tags = models.ManyToManyField('Tag', blank=True)
-    medical_status = models.CharField(max_length=MID_CHAR, blank=True, null=True)
+    medical_status = models.CharField(max_length=MID_CHAR, blank=True, null=True, default='0')
 
     class Meta:
         ordering = ['-create_time']
@@ -176,7 +177,7 @@ class PetLost(CommonMixin, AuditMixin):
         return mark_safe(html)
 
     def save(self, *args, **kwargs):
-        AuditMixin.save(self, *args, **kwargs)
+        super(PetLost, self).save(*args, **kwargs)
 
 
 class PetFound(CommonMixin, AuditMixin):
@@ -219,7 +220,7 @@ class PetFound(CommonMixin, AuditMixin):
         return mark_safe(html)
 
     def save(self, *args, **kwargs):
-        AuditMixin.save(self, *args, **kwargs)
+        super(PetFound, self).save(*args, **kwargs)
 
 
 class Tag(CommonMixin):
