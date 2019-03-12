@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseForbidden
 import wx_auth.auth as wxauth
+from wx_auth.util import get_qrcode
 import json
 
 # Create your views here.
@@ -39,6 +40,17 @@ def register(request):
     else:
         ret.data['account'] = account.to_dict()
         ret.data['token'] = token
+    return HttpResponse(ret.to_json())
+
+def get_miniprogram_qrcode(request):
+    ret = RetData()
+    result, data = get_qrcode(request.GET.get('page', None), request.GET.get('scene', None))
+    if result == False:
+        ret.code = 1
+        ret.message = '查询失败'
+        return HttpResponseForbidden(ret.to_json())
+    else:
+        ret.data['qrcode'] = data
     return HttpResponse(ret.to_json())
 
 def is_openid_registered(request):

@@ -1,7 +1,6 @@
-from django.apps import AppConfig
 from os import environ
 
-class WxAuthConfig(AppConfig):
+class WxAuthConfig:
     name = 'wx_auth'
     # JWT
     ISS = environ.get('ISS', 'iss')
@@ -13,3 +12,9 @@ class WxAuthConfig(AppConfig):
     # SMS
     SMSAPP_ID = environ.get('SMSAPP_ID', '1400185060')
     SMSAPP_KEY = environ.get('SMSAPP_KEY', 'eb61ec1022c9ccec0d86d28206a5c061')
+    # DB
+    DB_USER = environ.get('DB_USER', 'dbuser')
+    DB_PASSWORD = environ.get('DB_PASSWORD', 'Naibadbuser_060')
+    DB_HOST = environ.get('DB_HOST', 'localhost')
+    DB_PORT = environ.get('DB_PORT', '3306')
+    DB_DATABASE = environ.get('DB_DATABASE', 'naiba_eyes')
