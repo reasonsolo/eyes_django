@@ -78,6 +78,8 @@ class User(DictableModel, AbstractBaseUser, PermissionsMixin):
     wx_city = models.URLField(max_length=MID_CHAR, blank=True, null=True)
     last_ip = models.GenericIPAddressField(unpack_ipv4=True, blank=True, null=True)
     join_ip = models.GenericIPAddressField(unpack_ipv4=True, blank=True, null=True)
+    love_help_num = models.IntegerField(default=0)
+    bring_love_concern_num = models.IntegerField(default=0)
     objects = UserManager()
     USERNAME_FIELD = 'username'
 

@@ -98,7 +98,7 @@ urlpatterns = format_suffix_patterns([
 	url(r'^close/(?P<obj>lost|found)/(?P<pk>[0-9]+)/', case_close_obj, name='case-close-obj'),
 	url(r'^close/(?P<pk>[0-9]+)/', case_close_detail, name='case-close-detail'),
 
-    url(r'^action/(?P<action>like|repost|follow)/(?P<obj>lost|found)/(?P<pk>[0-9]+)$', ActionLogAPIView.as_view()),
+    url(r'^action/(?P<action>like|repost|follow|lovehelp|loveconcern)/(?P<obj>lost|found)/(?P<pk>[0-9]+)$', ActionLogAPIView.as_view()),
 
     url(r'^user/like$', like_feeds, name='like-feeds'),
     url(r'^user/(?P<obj>lost|found)$', MyPostView.as_view(), name='my-feeds'),

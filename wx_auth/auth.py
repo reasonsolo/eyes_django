@@ -7,6 +7,7 @@ from weixin.oauth2 import OAuth2AuthExchangeError
 import json
 import time
 import jwt
+import sys
 
 def get_phone_by_code(request):
     body_unicode = request.body.decode('utf-8')
@@ -43,6 +44,8 @@ def get_openid_by_code(request):
     openid = session_info.get('openid', None)
     reg_status = is_openid_registered_impl(openid)
     account, token = get_user_info_by_openid(openid)
+    print("get openid by code",openid,reg_status)
+    sys.stdout.flush()
     return True, openid, reg_status, session_key, account, token
 
 def is_openid_registered_impl(openid):

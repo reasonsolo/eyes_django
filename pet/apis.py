@@ -34,8 +34,8 @@ mimetypes.init()
 
 # Create your views here.
 
-COORDINATE_RANGE=0.1  # this is about 11 KM
-MATCH_COORDINATE_RANGE=0.01
+COORDINATE_RANGE=0.2  # this is about 22 KM
+MATCH_COORDINATE_RANGE=0.05
 
 def ResultResponse(data):
     if not isinstance(data, list):
@@ -73,8 +73,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
     def list(self, request):
         user = get_user_or_none(self.request)
         pet_type = request.GET.get('pet_type', 1)
-        longitude = request.GET.get('longitude', None)
-        latitude = request.GET.get('latitude', None)
+        longitude = request.GET.get('longitude', '')[:18]
+        latitude = request.GET.get('latitude', '')[:18]
         date_range = request.GET.get('date_range', None)
         pet_type = 1 if pet_type == '' else int(pet_type)
         queryset = PetLost.objects.filter(case_status=0, audit_status=1, pet_type=pet_type)
@@ -86,7 +86,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
         if date_range is not None and date_range != '':
             start_time = datetime.now() - timedelta(days=date_range)
             queryset = queryset.filter(create_time__gte=start_time)
-
+        if user is not None:
+            queryset = queryset | PetLost.objects.filter(case_status=0, pet_type=pet_type, publisher=user)
         lost_list = queryset.all()
         page = self.paginate_queryset(lost_list)
         if page is not None:
@@ -315,6 +316,8 @@ class PetFoundViewSet(viewsets.ModelViewSet):
             start_time = datetime.now() - timedelta(days=int(date_range))
             queryset = queryset.filter(create_time__gte=start_time)
 
+        if user is not None:
+            queryset = queryset | PetFound.objects.filter(case_status=0, pet_type=pet_type, publisher=user)
         found_list = queryset.all()
         page = self.paginate_queryset(found_list)
         if page is not None:
@@ -436,6 +439,10 @@ class ActionLogAPIView(views.APIView):
             return self.repost(request, obj, pk)
         if action == 'repost':
             return self.repost(request, obj, pk)
+        if action == 'lovehelp':
+            return self.love_help(request, obj, pk)
+        if action == 'loveconcern':
+            return self.love_concern(request, obj, pk)
 
     def like(self, request, obj=None, pk=None):
         cancel = int(request.GET.get('cancel', 0))
@@ -495,6 +502,36 @@ class ActionLogAPIView(views.APIView):
         repost_log.save()
         return ResultResponse({'count': instance.repost_count})
 
+    def love_help(self, request, obj=None, pk=None):
+        instance = self.get_object(obj, pk)
+        openid = request.GET.get('openid', None)
+        if openid is None:
+            raise Http404
+        lovehelp_log, create = LoveHelpLog.all_objects.get_or_create(**{'openid':openid, obj:instance})
+
+        if create or not lovehelp_log.flag:
+            instance.love_help_count += 1
+            instance.save()
+
+        lovehelp_log.flag = True
+        lovehelp_log.save()
+        return ResultResponse({'count': instance.love_help_count})
+
+    def love_concern(self, request, obj=None, pk=None):
+        instance = self.get_object(obj, pk)
+        openid = request.GET.get('openid', None)
+        if openid is None:
+            raise Http404
+        from_openid = request.GET.get('from_openid', None)
+        loveconcern_log, create = LoveConcernLog.all_objects.get_or_create(**{'openid':openid, obj:instance})
+
+        if create or not loveconcern_log.flag:
+            instance.love_concern_count += 1
+            instance.save()
+
+        loveconcern_log.flag = True
+        loveconcern_log.save()
+        return ResultResponse({'count': instance.love_concern_count})
 
 # TimelineTuple = namedtuple('Timeline', ('lost', 'found'))
 class LikeFeedsView(viewsets.ModelViewSet):

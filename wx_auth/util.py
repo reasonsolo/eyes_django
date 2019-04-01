@@ -32,7 +32,7 @@ def get_qrcode(page, scene):
             return False, None
     except:
         pass
-    return True, str(base64.b64encode(ret))
+    return True, str(base64.b64encode(ret))[2:-1]
 
 def get_access_token():
     token = None

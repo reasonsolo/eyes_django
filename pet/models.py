@@ -8,6 +8,7 @@ from django.conf import settings
 from datetime import datetime
 from wx_auth.models import User
 
+import decimal
 import os
 
 SHORT_CHAR=5
@@ -88,6 +89,23 @@ BANNER_TYPE = (
 def today():
     return timezone.now().date()
 
+class RoundedDecimalField(models.DecimalField):
+    """
+    Usage: my_field = RoundedDecimalField("my field", max_digits = 6, decimal_places = 2)
+    """
+    def __init__(self, *args, **kwargs):
+        super(RoundedDecimalField, self).__init__(*args, **kwargs)
+        self.decimal_ctx = decimal.Context(prec = self.max_digits, rounding = decimal.ROUND_HALF_UP)
+    
+    def to_python(self, value):
+        res = super(RoundedDecimalField, self).to_python(value)
+        
+        if res is None:
+            return res
+        
+        return self.decimal_ctx.create_decimal(res).quantize(decimal.Decimal(10) ** - self.decimal_places)  
+
+
 # filter out flag=0 by default
 class FlaggedModelManager(models.Manager):
     def get_queryset(self):
@@ -143,8 +161,8 @@ class PetLost(CommonMixin, AuditMixin):
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
-    latitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    longitude = RoundedDecimalField(max_digits=20, decimal_places=16, default=0)
+    latitude = RoundedDecimalField(max_digits=20, decimal_places=16, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
     # IMPORTANT: do NOT use update() to update audit_status, or the audit message will be missing
     audit_status = models.IntegerField(choices=AUDIT_STATUS, default=0)
@@ -162,6 +180,8 @@ class PetLost(CommonMixin, AuditMixin):
     like_count = models.IntegerField(default=0)
     tags = models.ManyToManyField('Tag', blank=True)
     medical_status = models.CharField(max_length=MID_CHAR, blank=True, null=True, default='0')
+    love_help_count = models.IntegerField(default=0)
+    love_concern_count = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['-create_time']
@@ -191,8 +211,8 @@ class PetFound(CommonMixin, AuditMixin):
     description = models.TextField(blank=True, null=True)
     region_id = models.IntegerField(blank=True, null=True)
     place = models.CharField(max_length=LONG_CHAR, blank=True, null=True)
-    longitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
-    latitude = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    longitude = RoundedDecimalField(max_digits=20, decimal_places=16, default=0)
+    latitude = RoundedDecimalField(max_digits=20, decimal_places=16, default=0)
 
     found_status = models.IntegerField(choices=FOUND_STATUS, default=0)
     case_status = models.IntegerField(choices=CASE_STATUS, default=0)
@@ -205,6 +225,8 @@ class PetFound(CommonMixin, AuditMixin):
     boost_count = models.IntegerField(default=0)
 
     tags = models.ManyToManyField('Tag', blank=True)
+    love_help_count = models.IntegerField(default=0)
+    love_concern_count = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['-create_time']
@@ -468,4 +490,13 @@ class Banner(CommonMixin):
     def __str__(self):
         return self.name
 
+class LoveHelpLog(CommonMixin):
+    openid = models.CharField(max_length=50, blank=True, null=True)
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_set')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_set')
 
+class LoveConcernLog(CommonMixin):
+    openid = models.CharField(max_length=50, blank=True, null=True)
+    from_openid = models.CharField(max_length=50, blank=True, null=True)
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_concern_set')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_concern_set')

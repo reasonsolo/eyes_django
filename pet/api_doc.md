@@ -99,7 +99,7 @@ BANNER_TYPE = (
 Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender', 'lost_time', 'place',
                   'color', 'description', 'material_set', 'tags', 'medical_status', 'reward', 'birthday',
                   'longitude', 'latitude', 'view_count', 'repost_count', 'like_count',
-                  'case_status', 'audit_status', 'publish_charge_status')`
+                  'case_status', 'audit_status', 'publish_charge_status', 'love_help_count', 'love_concern_count')`
 `pet_type` 猫/狗/其他
 `species` 品种
 `medical_status` `,`逗号分隔字符串
@@ -129,7 +129,7 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
 Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color','gender',
                  'tags', 'place', 'found_time' 'description', 'latitude', 'longitude',
                  'found_status', 'case_status', 'audit_status', 'liked',
-                 'view_count', 'like_count', 'repost_count', 'material_set')`
+                 'view_count', 'like_count', 'repost_count', 'material_set', 'love_help_count', 'love_concern_count')`
 1. `/pet/founds` 同 `/pet/losts`
 2. `/pet/found/<id>` 同 `/pet/lost/<id>`
 3. `/pet/found/match/<id>` 同 `/pet/lost/match/<id>`
@@ -152,11 +152,11 @@ Species对象字段 `('id', 'pet_type', 'name')`，`pet_type`: 1-猫, 2-狗, 0-�
    - `GET` 返回对象列表， 接受参数`pet_type`，返回`top: [species*9], ordered: [species...]`，top按照引用数量排序，ordered按照拼音首字母排序
 
 ## actions
-action: 点赞like, 转发repost, 收藏follow
+action: 点赞like, 转发repost, 收藏follow, 爱心助力lovehelp, 爱心关注loveconcern
 obj: lost, found
 
 1. `/pet/action/<action>/<obj>/<id>/`
-  - `GET` 记录点赞/转发/收藏，参数`cancel=1`取消，返回action成功后的数量统计`{'count': <int>}`
+  - `GET` 记录点赞/转发/收藏/爱心助力/爱心关注，参数`cancel=1`取消，openid为爱心助力或关注实施者微信openid，from_openid为爱心关注分享者微信openid,返回action成功后的数量统计`{'count': <int>}`
 
 
 ## comment
