@@ -18,6 +18,7 @@ from rest_framework.pagination import LimitOffsetPagination
 
 from wx_auth.backends import AuthBackend
 from pet.models import *
+from wx_auth.models import User
 from pet.serializers import *
 from pet.messages import get_or_create_thread_by_user, update_msg_thread , init_user_system_threads
 from eyes1000.settings import get_absolute_url
@@ -53,6 +54,14 @@ def get_user(request):
     if user is None:
         raise APIException(detail=u'用户未登录', code=401)
     return user
+
+def get_user_by_openid(openid):
+    if openid is None:
+        return None
+    users = User.objects.filter(wx_openid=openid)
+    if len(users) == 0:
+        return None
+    return users[0]
 
 def get_obj(obj, obj_pk, user):
     instance = None
@@ -512,6 +521,10 @@ class ActionLogAPIView(views.APIView):
         if create or not lovehelp_log.flag:
             instance.love_help_count += 1
             instance.save()
+            user = get_user_by_openid(openid)
+            if user is not None:
+                user.love_help_num += 1
+                user.save()
 
         lovehelp_log.flag = True
         lovehelp_log.save()
@@ -520,16 +533,21 @@ class ActionLogAPIView(views.APIView):
     def love_concern(self, request, obj=None, pk=None):
         instance = self.get_object(obj, pk)
         openid = request.GET.get('openid', None)
-        if openid is None:
-            raise Http404
         from_openid = request.GET.get('from_openid', None)
+        if openid is None or from_openid is None:
+            raise Http404
         loveconcern_log, create = LoveConcernLog.all_objects.get_or_create(**{'openid':openid, obj:instance})
 
         if create or not loveconcern_log.flag:
             instance.love_concern_count += 1
             instance.save()
+            user = get_user_by_openid(from_openid)
+            if user is not None:
+                user.bring_love_concern_num += 1
+                user.save()
 
         loveconcern_log.flag = True
+        loveconcern_log.from_openid = from_openid
         loveconcern_log.save()
         return ResultResponse({'count': instance.love_concern_count})
 
