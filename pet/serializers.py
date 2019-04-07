@@ -163,7 +163,7 @@ class PetFoundSerializer(serializers.ModelSerializer):
     publisher = UserBriefSerializer(read_only=True)
     material_set = PetMaterialSerializer(many=True, required=False)
     tags = serializers.SlugRelatedField(many=True, required=False, slug_field='name', queryset=Tag.objects)
-    species = PetSpeciesSerializer()
+    species = PetSpeciesSerializer(required=False)
 
     comment_count = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
@@ -215,9 +215,10 @@ class PetFoundSerializer(serializers.ModelSerializer):
         return instance
 
     def set_species(self, instance, species_id):
-        species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
-        instance.pet_type = species.pet_type
-        instance.species = species
+        if 'id' in species_id:
+            species = PetSpecies.objects.filter(id=int(species_id["id"])).first()
+            instance.pet_type = species.pet_type
+            instance.species = species
 
     def set_material_set(self, instance, material_set):
         instance.material_set.clear()
