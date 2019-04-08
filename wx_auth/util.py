@@ -11,7 +11,7 @@ def free_db_connection(db, cursor):
     cursor.close()
     db.close()
 
-def get_qrcode(page, scene):
+def get_qrcode(page, scene, is_raw = False):
     if page is None or scene is None:
         return False, None
     data = {}
@@ -32,7 +32,9 @@ def get_qrcode(page, scene):
             return False, None
     except:
         pass
-    return True, str(base64.b64encode(ret))[2:-1]
+    if is_raw == False:
+        return True, str(base64.b64encode(ret))[2:-1]
+    return True, ret
 
 def get_access_token():
     token = None

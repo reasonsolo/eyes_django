@@ -53,6 +53,16 @@ def get_miniprogram_qrcode(request):
         ret.data['qrcode'] = data
     return HttpResponse(ret.to_json())
 
+def get_raw_miniprogram_qrcode(request):
+    ret = RetData()
+    result, data = get_qrcode(request.GET.get('page', None), request.GET.get('scene', None), True)
+    if result == False:
+        ret.code = 1
+        ret.message = '查询失败'
+        return HttpResponseForbidden(ret.to_json())
+    else:
+        return HttpResponse(data)
+
 def is_openid_registered(request):
     is_registered = wxauth.is_openid_registered(request)
     ret = RetData()
