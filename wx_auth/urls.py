@@ -7,4 +7,5 @@ urlpatterns = [
     url(r'^get_openid_by_code$', wx_auth.views.get_openid_by_code, name="get_openid_by_code"),
     url(r'^get_miniprogram_qrcode$', wx_auth.views.get_miniprogram_qrcode, name="get_miniprogram_qrcode"),
     url(r'^get_raw_miniprogram_qrcode$', wx_auth.views.get_raw_miniprogram_qrcode, name="get_raw_miniprogram_qrcode"),
+    url(r'^get_location$', wx_auth.views.get_location, name='get_location'),
 ]

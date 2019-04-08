@@ -5,6 +5,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 import wx_auth.auth as wxauth
 from wx_auth.util import get_qrcode
 import json
+import requests
 
 # Create your views here.
 class RetData():
@@ -91,3 +92,18 @@ def get_openid_by_code(request):
             ret.data['account'] = None
         ret.data['token'] = token
     return HttpResponse(ret.to_json())
+
+def get_location(request):
+    location = request.GET.get('location', '31.229243,121.474822')
+    LBS_KEY = '4NDBZ-BRT6X-P544Y-TCJNY-55CYF-XHB7I'
+    URL = "https://apis.map.qq.com/ws/geocoder/v1/?location=%s&get_poi=0&key=%s"
+    lbs_req = requests.get(URL % (location, LBS_KEY), timeout=0.1)
+    return HttpResponse(lbs_req, 'application/json')
+
+
+
+
+
+
+
+
