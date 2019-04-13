@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseForbidden
 import wx_auth.auth as wxauth
-from wx_auth.util import get_qrcode
+from wx_auth.util import get_qrcode_url, del_qrcode_img
 import json
 import requests
 
@@ -45,13 +45,18 @@ def register(request):
 
 def get_miniprogram_qrcode(request):
     ret = RetData()
-    result, data = get_qrcode(request.GET.get('page', None), request.GET.get('scene', None))
+    result, data = get_qrcode_url(request.GET.get('page', None), request.GET.get('scene', None))
     if result == False:
         ret.code = 1
         ret.message = '查询失败'
         return HttpResponseForbidden(ret.to_json())
     else:
         ret.data['qrcode'] = data
+    return HttpResponse(ret.to_json())
+
+def del_miniprogram_qrcode(request):
+    ret = RetData()
+    result = del_qrcode_img(request.GET.get('qrcode', None))
     return HttpResponse(ret.to_json())
 
 def get_raw_miniprogram_qrcode(request):
@@ -97,7 +102,10 @@ def get_location(request):
     location = request.GET.get('location', '31.229243,121.474822')
     LBS_KEY = '4NDBZ-BRT6X-P544Y-TCJNY-55CYF-XHB7I'
     URL = "https://apis.map.qq.com/ws/geocoder/v1/?location=%s&get_poi=0&key=%s"
-    lbs_req = requests.get(URL % (location, LBS_KEY), timeout=0.1)
+    try:
+        lbs_req = requests.get(URL % (location, LBS_KEY), timeout=0.3)
+    except:
+        return HttpResponse(status=500)
     return HttpResponse(lbs_req, 'application/json')
 
 

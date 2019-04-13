@@ -7,9 +7,20 @@ import datetime
 import MySQLdb
 import urllib.request
 import base64
+import hashlib
+import os 
 def free_db_connection(db, cursor):
     cursor.close()
     db.close()
+
+def del_qrcode_img(name):
+    if name is None:
+        return True
+    if len(name) <= 4 or name[-4:]!='.png':
+        return True
+    file_path = '/data/resource/' + name
+    os.remove(file_path)
+    return True
 
 def get_qrcode(page, scene, is_raw = False):
     if page is None or scene is None:
@@ -36,6 +47,18 @@ def get_qrcode(page, scene, is_raw = False):
         return True, str(base64.b64encode(ret))[2:-1]
     return True, ret
 
+def get_qrcode_url(page, scene):
+    ret, img = get_qrcode(page, scene, True)
+    if ret == False:
+        return ret, None
+    m1 = hashlib.md5()
+    m1.update(img) 
+    img_file_name = m1.hexdigest() + '.png'
+    img_file_path = '/data/resource/qrcode/' + img_file_name
+    with open(img_file_path, 'wb') as f:
+        f.write(img)
+    return True, 'https://www.1000eye.com.cn/resource/qrcode/' + img_file_name
+    
 def get_access_token():
     token = None
     db = MySQLdb.connect(WxAuthConfig.DB_HOST, WxAuthConfig.DB_USER, WxAuthConfig.DB_PASSWORD, WxAuthConfig.DB_DATABASE)
@@ -55,5 +78,5 @@ def get_access_token():
 
 if __name__ == "__main__":
     from apps import WxAuthConfig
-    ret, img = get_qrcode('pages/index/index','123')
+    ret, img = get_qrcode_url('pages/index/index','123')
     print(img)
