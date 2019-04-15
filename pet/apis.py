@@ -206,7 +206,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
     def get_love_help(self, request, pk):
         user = get_user(self.request)
         instance = self.get_object()
-        love_help_records = instance.love_help_record_set
+        love_help_records = instance.love_help_record_set.order_by('-count').all()
         return ResultResponse(LoveHelpRecordSerializer(love_help_records, many=True).data)
 
 
@@ -436,7 +436,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
     def get_love_help(self, request, pk):
         user = get_user(self.request)
         instance = self.get_object()
-        love_help_records = instance.love_help_record_set
+        love_help_records = instance.love_help_record_set.order_by('-count').all()
         return ResultResponse(LoveHelpRecordSerializer(love_help_records, many=True).data)
 
 

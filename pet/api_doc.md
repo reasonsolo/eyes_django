@@ -124,6 +124,8 @@ Lost对象字段 `('id', 'publisher', 'nickname', 'species', 'pet_type', 'gender
   - `POST` 创建匹配`lost<id>`的Found对象，成功返回对象数据
 4. `/pet/lost/status/<id>`
   - `GET` 修改lost状态，参数`case_status`, 0-有效，1-已结案，2-已关闭，返回对象
+5. `/pet/lost/love_help/<id>`
+  - `GET` 返回爱心助力统计 `('id', 'user', 'lost', 'found', 'count')` 按count倒序排序
 
 ## found
 Found 对象字段 `('id', 'publisher', 'species', 'pet_type', 'color','gender',
