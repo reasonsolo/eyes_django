@@ -203,7 +203,7 @@ class PetLostViewSet(viewsets.ModelViewSet):
             raise PermissionDenied
 
     @action(detail=True)
-    def get_love_concern(self, request, pk):
+    def get_love_help(self, request, pk):
         user = get_user(self.request)
         instance = self.get_object()
         love_help_records = instance.love_help_record_set
@@ -433,7 +433,7 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         return ResultResponse(self.get_serializer(instance, context={'request': request}).data)
 
     @action(detail=True)
-    def get_love_concern(self, request, pk):
+    def get_love_help(self, request, pk):
         user = get_user(self.request)
         instance = self.get_object()
         love_help_records = instance.love_help_record_set
