@@ -96,14 +96,14 @@ class RoundedDecimalField(models.DecimalField):
     def __init__(self, *args, **kwargs):
         super(RoundedDecimalField, self).__init__(*args, **kwargs)
         self.decimal_ctx = decimal.Context(prec = self.max_digits, rounding = decimal.ROUND_HALF_UP)
-    
+
     def to_python(self, value):
         res = super(RoundedDecimalField, self).to_python(value)
-        
+
         if res is None:
             return res
-        
-        return self.decimal_ctx.create_decimal(res).quantize(decimal.Decimal(10) ** - self.decimal_places)  
+
+        return self.decimal_ctx.create_decimal(res).quantize(decimal.Decimal(10) ** - self.decimal_places)
 
 
 # filter out flag=0 by default
@@ -494,6 +494,14 @@ class LoveHelpLog(CommonMixin):
     openid = models.CharField(max_length=50, blank=True, null=True)
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_set')
+
+
+class LoveHelpRecord(CommonMixin):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="love_help_record_set")
+    lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_record_set')
+    found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_record_set')
+    count = models.IntegerField(default=0)
+
 
 class LoveConcernLog(CommonMixin):
     openid = models.CharField(max_length=50, blank=True, null=True)

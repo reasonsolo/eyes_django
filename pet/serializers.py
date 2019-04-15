@@ -322,6 +322,14 @@ class PetCaseCloseSerializer(serializers.ModelSerializer):
         fields = ('id', 'lost', 'found', 'description', 'material_set')
 
 
+class LoveHelpRecordSerializer(serializers.ModelSerializer):
+    user = UserBriefSerializer(read_only=True)
+    class Meta:
+        model = LoveHelpRecord
+        fields = ('id', 'lost', 'found', 'count', 'user')
+
+
+
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner

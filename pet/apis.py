@@ -202,6 +202,13 @@ class PetLostViewSet(viewsets.ModelViewSet):
         else:
             raise PermissionDenied
 
+    @action(detail=True)
+    def get_love_concern(self, request, pk):
+        user = get_user(self.request)
+        instance = self.get_object()
+        love_help_records = instance.love_help_record_set
+        return ResultResponse(LoveHelpRecordSerializer(love_help_records, many=True).data)
+
 
 # TODO(zlz): test this
 class PetCaseCloseViewSet(viewsets.ModelViewSet):
@@ -425,6 +432,14 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         instance.save()
         return ResultResponse(self.get_serializer(instance, context={'request': request}).data)
 
+    @action(detail=True)
+    def get_love_concern(self, request, pk):
+        user = get_user(self.request)
+        instance = self.get_object()
+        love_help_records = instance.love_help_record_set
+        return ResultResponse(LoveHelpRecordSerializer(love_help_records, many=True).data)
+
+
 class ActionLogAPIView(views.APIView):
     obj_mapping = {
         'lost': PetLost,
@@ -525,6 +540,10 @@ class ActionLogAPIView(views.APIView):
             if user is not None:
                 user.love_help_num += 1
                 user.save()
+                love_help_record = LoveHelpRecord.all_objects.get_or_create(**{'user': user,
+                                                                               'count': 1,
+                                                                               obj:instance})
+
 
         lovehelp_log.flag = True
         lovehelp_log.save()
@@ -545,6 +564,8 @@ class ActionLogAPIView(views.APIView):
             if user is not None:
                 user.bring_love_concern_num += 1
                 user.save()
+                LoveHelpRecord.objects.filter(**{'user': user, obj:instance}).update(count=F('count')+1)
+
 
         loveconcern_log.flag = True
         loveconcern_log.from_openid = from_openid
