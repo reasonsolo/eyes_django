@@ -509,14 +509,14 @@ class ActionLogAPIView(views.APIView):
 
 
     def repost(self, request, obj=None, pk=None):
-        user = get_user(request)
+        user = get_user(request) 
         cancel = int(request.GET.get('cancel', 0))
         instance = self.get_object(obj, pk)
         repost_log, create = RepostLog.all_objects.get_or_create(**{'user':user, obj:instance})
         if cancel == 1:
-            if not create and repost_log.flag:
-                instance.repost_count -= 1
-                instance.save()
+             if not create and repost_log.flag:
+                 instance.repost_count -= 1
+                 instance.save()
         else:
             if create or not repost_log.flag:
                 instance.repost_count += 1
@@ -531,19 +531,18 @@ class ActionLogAPIView(views.APIView):
         openid = request.GET.get('openid', None)
         if openid is None:
             raise Http404
+        user = get_user_by_openid(openid)
         lovehelp_log, create = LoveHelpLog.all_objects.get_or_create(**{'openid':openid, obj:instance})
+        love_help_record, _ = LoveHelpRecord.all_objects.get_or_create(**{'user': user, obj:instance})
+        love_help_record.count += 1
+        love_help_record.save()
 
         if create or not lovehelp_log.flag:
             instance.love_help_count += 1
             instance.save()
-            user = get_user_by_openid(openid)
             if user is not None:
                 user.love_help_num += 1
                 user.save()
-                love_help_record = LoveHelpRecord.all_objects.get_or_create(**{'user': user,
-                                                                               'count': 1,
-                                                                               obj:instance})
-
 
         lovehelp_log.flag = True
         lovehelp_log.save()
@@ -564,7 +563,7 @@ class ActionLogAPIView(views.APIView):
             if user is not None:
                 user.bring_love_concern_num += 1
                 user.save()
-                LoveHelpRecord.objects.filter(**{'user': user, obj:instance}).update(count=F('count')+1)
+                LoveHelpRecord.objects.filter(**{'user': user, obj:instance}).update(concern_count=F('concern_count')+1)
 
 
         loveconcern_log.flag = True

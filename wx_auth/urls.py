@@ -8,4 +8,5 @@ urlpatterns = [
     url(r'^get_miniprogram_qrcode$', wx_auth.views.get_miniprogram_qrcode, name="get_miniprogram_qrcode"),
     url(r'^get_raw_miniprogram_qrcode$', wx_auth.views.get_raw_miniprogram_qrcode, name="get_raw_miniprogram_qrcode"),
     url(r'^get_location$', wx_auth.views.get_location, name='get_location'),
+    url(r'^convert_avatar_url$', wx_auth.views.convert_user_avatar_url, name='convert_user_avatar_url'),
 ]

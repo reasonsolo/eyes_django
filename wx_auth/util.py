@@ -58,7 +58,21 @@ def get_qrcode_url(page, scene):
     with open(img_file_path, 'wb') as f:
         f.write(img)
     return True, 'https://www.1000eye.com.cn/resource/qrcode/' + img_file_name
-    
+
+def get_avatar_url(url):
+    if url is None:
+        return False, None
+    req = urllib.request.Request(url)
+    response = urllib.request.urlopen(req)
+    img = response.read()
+    m1 = hashlib.md5()
+    m1.update(img)
+    img_file_name = m1.hexdigest()
+    img_file_path = '/data/resource/avatar/' + img_file_name
+    with open(img_file_path, 'wb') as f:
+        f.write(img)
+    return True, 'https://www.1000eye.com.cn/resource/avatar/' + img_file_name
+
 def get_access_token():
     token = None
     db = MySQLdb.connect(WxAuthConfig.DB_HOST, WxAuthConfig.DB_USER, WxAuthConfig.DB_PASSWORD, WxAuthConfig.DB_DATABASE)

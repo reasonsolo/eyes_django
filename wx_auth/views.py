@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseForbidden
 import wx_auth.auth as wxauth
-from wx_auth.util import get_qrcode_url, del_qrcode_img
+from wx_auth.util import get_qrcode_url, del_qrcode_img, get_avatar_url
 import json
 import requests
 
@@ -52,6 +52,21 @@ def get_miniprogram_qrcode(request):
         return HttpResponseForbidden(ret.to_json())
     else:
         ret.data['qrcode'] = data
+    return HttpResponse(ret.to_json())
+
+@csrf_exempt
+def convert_user_avatar_url(request):
+    ret = RetData()
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    url = body.get('avatar_url', None)
+    result, data = get_avatar_url(url)
+    if result == False:
+        ret.code = 1
+        ret.message = '查询失败'
+        return HttpResponseForbidden(ret.to_json())
+    else:
+        ret.data['avatar_url'] = data
     return HttpResponse(ret.to_json())
 
 def del_miniprogram_qrcode(request):

@@ -326,7 +326,7 @@ class LoveHelpRecordSerializer(serializers.ModelSerializer):
     user = UserBriefSerializer(read_only=True)
     class Meta:
         model = LoveHelpRecord
-        fields = ('id', 'lost', 'found', 'count', 'user')
+        fields = ('id', 'lost', 'found', 'count', 'user', 'concern_count')
 
 
 

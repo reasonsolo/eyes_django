@@ -500,7 +500,8 @@ class LoveHelpRecord(CommonMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="love_help_record_set")
     lost = models.ForeignKey('PetLost', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_record_set')
     found = models.ForeignKey('PetFound', on_delete=models.SET_NULL, blank=True, null=True, related_name='love_help_record_set')
-    count = models.IntegerField(default=0)
+    count = models.IntegerField(default=1)
+    concern_count = models.IntegerField(default=0)
 
 
 class LoveConcernLog(CommonMixin):
