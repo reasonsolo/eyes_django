@@ -35,7 +35,7 @@ mimetypes.init()
 
 # Create your views here.
 
-COORDINATE_RANGE=0.2  # this is about 22 KM
+COORDINATE_RANGE=1  # this is about 22 KM
 MATCH_COORDINATE_RANGE=0.05
 
 def ResultResponse(data):
@@ -96,8 +96,8 @@ class PetLostViewSet(viewsets.ModelViewSet):
             start_time = datetime.now() - timedelta(days=date_range)
             queryset = queryset.filter(create_time__gte=start_time)
         if user is not None:
-            queryset = queryset | PetLost.objects.filter(case_status=0, pet_type=pet_type, publisher=user)
-        lost_list = queryset.all()
+            queryset = queryset | PetLost.objects.filter(pet_type=pet_type, publisher=user)
+        lost_list = queryset.distinct().order_by('-create_time').all()
         page = self.paginate_queryset(lost_list)
         if page is not None:
             ids = [instance.id for instance in page]
@@ -114,18 +114,28 @@ class PetLostViewSet(viewsets.ModelViewSet):
         instance.save()
         serializer = self.get_serializer(instance, context={'request': request})
         return ResultResponse(serializer.data)
-
-    def perform_update(self, serializer):
+   
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
         user = get_user(self.request)
         instance = self.get_object()
         if instance.publisher != user:
             raise PermissionDenied
-        if serializer.is_valid(raise_exception=True):
-            instance = serializer.save()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
         instance.last_update_by = user
         instance.save()
 
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return ResultResponse(serializer.data)
+
     def perform_create(self, serializer):
+        print('perform create')
         user = get_user(self.request)
         instance = serializer.save()
         instance.create_by = user
@@ -265,11 +275,8 @@ class MaterialUploadView(views.APIView):
 
     def gen_filename(self, mime):
         return str(uuid.uuid1())
-
-    def post(self, request, format=None):
-        user = get_user(request)
-
-        file_obj = request.FILES['file']
+   
+    def save_file(self, file_obj, user):
         fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'material'),
                                base_url=settings.MEDIA_URL + 'material')
         upload_filename = file_obj.name
@@ -293,7 +300,27 @@ class MaterialUploadView(views.APIView):
                                size=file_obj.size, url=uploaded_url, thumb_url=thumb_url,
                                create_by=user, last_update_by=user)
         material.save()
-        ret = {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
+        return {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
+
+    def post_multi(self, request):
+        user = get_user(request)
+        file_list = request.FILES.getlist('files')
+        ret = []
+        for file_obj in file_list:
+          ret.append(self.save_file(file_obj, user, user))
+        return ResultResponse(ret)
+
+    def post(self, request, format=None):
+        user = get_user(request)
+        ret = None
+        if 'file' in request.FILES:
+          file_obj = request.FILES['file']
+          ret = self.save_file(file_obj, user)
+        elif 'files' in request.FILES:
+          ret = []
+          file_list = request.FILES.getlist('files')
+          for file_obj in file_list:
+            ret.append(self.save_file(file_obj, user, user))
         return ResultResponse(ret)
 
 
@@ -333,8 +360,8 @@ class PetFoundViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(create_time__gte=start_time)
 
         if user is not None:
-            queryset = queryset | PetFound.objects.filter(case_status=0, pet_type=pet_type, publisher=user)
-        found_list = queryset.all()
+            queryset = queryset | PetFound.objects.filter(pet_type=pet_type, publisher=user)
+        found_list = queryset.distinct().order_by('-create_time').all()
         page = self.paginate_queryset(found_list)
         if page is not None:
             ids = [instance.id for instance in page]
@@ -352,14 +379,24 @@ class PetFoundViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, context={'request': request})
         return ResultResponse(serializer.data)
 
-    def perform_update(self, serializer):
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
         user = get_user(self.request)
-        instance = serializer.save()
-        if instance.publisher == user:
-            instance.last_update_by = user
-            instance.save()
-        else:
+        instance = self.get_object()
+        if instance.publisher != user:
             raise PermissionDenied
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        instance.last_update_by = user
+        instance.save()
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return ResultResponse(serializer.data)
 
     def perform_create(self, serializer):
         user = get_user(self.request)

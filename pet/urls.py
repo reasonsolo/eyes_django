@@ -11,8 +11,7 @@ lost_list = PetLostViewSet.as_view({
 
 lost_detail = PetLostViewSet.as_view({
     'get': 'retrieve',
-    'post': 'create',
-    'update': 'update',
+    'post': 'update',
     'delete': 'destroy',
 })
 lost_match = PetLostViewSet.as_view({
@@ -30,11 +29,9 @@ found_list = PetFoundViewSet.as_view({
     'get': 'list',
     'post': 'create'
 })
-
 found_detail = PetFoundViewSet.as_view({
     'get': 'retrieve',
     'post': 'update',
-    'update': 'update',
     'delete': 'destroy',
 })
 found_match = PetFoundViewSet.as_view({
