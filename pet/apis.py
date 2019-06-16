@@ -266,7 +266,7 @@ class MaterialViewSet(viewsets.ModelViewSet):
         material = self.get_object(pk)
         if material ==  None:
             raise Http404
-        ret = {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
+        ret = {'id': material.id, 'url': get_absolute_url(material.url), 'thumb_url': get_absolute_url(material.thumb_url)}
         return ResultResponse(ret)
 
 
