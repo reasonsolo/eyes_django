@@ -300,7 +300,7 @@ class MaterialUploadView(views.APIView):
                                size=file_obj.size, url=uploaded_url, thumb_url=thumb_url,
                                create_by=user, last_update_by=user)
         material.save()
-        return {'id': material.id, 'url': get_absolute_url(material.url), 'thumbnail_url': get_absolute_url(material.thumb_url)}
+        return {'id': material.id, 'url': get_absolute_url(material.url), 'thumb_url': get_absolute_url(material.thumb_url)}
 
     def post_multi(self, request):
         user = get_user(request)
